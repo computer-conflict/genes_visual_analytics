@@ -1,0 +1,46 @@
+{
+  "name": "nuxt-app",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare",
+    "lint": "eslint ."
+  },
+  "devDependencies": {
+    "@bokeh/bokehjs": "^3.3.0",
+    "@bokeh/numbro": "^1.6.2",
+    "@bokeh/slickgrid": "^2.4.4102",
+    "@nuxt/devtools": "latest",
+    "@nuxt/eslint-config": "^0.2.0",
+    "@nuxt/image": "^1.0.0",
+    "@nuxtjs/google-fonts": "^3.0.2",
+    "@nuxtjs/i18n": "8.0.0-rc.5",
+    "@nuxtjs/tailwindcss": "^6.9.4",
+    "@pinia/nuxt": "^0.5.1",
+    "choices.js": "^10.2.0",
+    "eslint": "^8.52.0",
+    "flatbush": "^4.2.0",
+    "flatpickr": "^4.6.13",
+    "hammerjs": "^2.0.8",
+    "mathjax-full": "^3.2.2",
+    "nouislider": "^15.7.1",
+    "nuxt": "^3.8.1",
+    "proj4": "^2.9.2",
+    "regl": "^2.1.0",
+    "sass": "^1.69.5",
+    "sprintf-js": "^1.1.3",
+    "timezone": "^1.0.23",
+    "typescript": "^5.2.2",
+    "underscore.template": "^0.1.7",
+    "vite-svg-loader": "^4.0.0",
+    "vue": "^3.3.8",
+    "vue-router": "^4.2.5"
+  },
+  "dependencies": {
+    "mitt": "^3.0.1"
+  }
+}

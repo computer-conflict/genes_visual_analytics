@@ -1,0 +1,9 @@
+{
+  "settings": {
+    "menu": {
+      "title": "Configuración",
+      "global": "Global",
+      "database": "Base de datos"
+    }
+  }
+}
