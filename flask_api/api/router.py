@@ -28,5 +28,6 @@ def plotter():
   try:
     plot = exec_plotter()
     return jsonify(json.dumps(json_item(plot, "plot")))
-  except Exception:
+  except Exception as e:
+    print(f"Error: {str(e)}")
     abort(500)

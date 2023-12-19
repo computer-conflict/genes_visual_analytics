@@ -5,6 +5,15 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Python: Run server",
+      "type": "python",
+      "request": "launch",
+      "python": "${workspaceFolder}/.venv/bin/python",
+      "program": "${workspaceFolder}/app.py",
+      "args": [],
+      "justMyCode": true
+    },
+    {
       "name": "Python: Dataset Mod.2",
       "type": "python",
       "request": "launch",

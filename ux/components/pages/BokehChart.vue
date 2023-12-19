@@ -1,21 +1,24 @@
 <template>
-  <div class="h-screen flex flex-col justify-center ">
-    <div v-if="errorLoading">
-      {{ "Error al cargar la grafica" }}
-    </div>
+  <client-only>
+    <div class="h-screen flex flex-col justify-center ">
+      <div v-if="errorLoading">
+        {{ "Error al cargar la grafica" }}
+      </div>
     
-    <div class="flex grow justify-center">
-      <FeedbackWaiting v-if="pending" />
-    </div>
+      <div class="flex grow justify-center">
+        <feedback-waiting v-if="pending" />
+      </div>
     
-    <div
-      v-show="!pending"
-      id="main_plot"
-      ref="plot"
-      class="flex flex-col justify-center m-5 mx-10"
-    />
-  </div>
+      <div
+        v-show="!pending"
+        id="main_plot"
+        ref="plot"
+        class="flex flex-col justify-center m-5 mx-10"
+      />
+    </div>
+  </client-only>
 </template>
+
 <script setup>
 // -- Imports -- //
 import * as Bokeh from '@bokeh/bokehjs'
@@ -40,13 +43,13 @@ watch(error, () => {
 })
 watch(data, (value) => {
   errorLoading.value = false
+  debugger
   Bokeh.embed.embed_item(JSON.parse(value), plot.value)
 })
 
 </script>
 <style lang="scss" scoped>
 #main_plot {
-
   > :first-child {
     width: -webkit-fill-available;
   }

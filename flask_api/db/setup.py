@@ -8,7 +8,18 @@ import pandas as pd
 __import__('pysqlite3')
 import sys
 sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
-import chromadb 
+import chromadb, time
+
+  
+def get_embeddings(print_time = False):  
+  start_time = time.time()  
+  client = chromadb.PersistentClient(path="./db/local_client")
+  collection = client.get_collection("chromagens")
+  embeddings = collection.get(include=['embeddings'])['embeddings']
+  end_time = time.time()
+  if(print_time):
+    print(f"Embeddings time: {end_time - start_time} seconds")
+  return embeddings
 
 #Db setup
 def chroma_setup():
@@ -34,7 +45,8 @@ def chroma_setup():
     print("Adding documents...")
     collection.add(
         documents= documents,
-        metadatas=metadatas,
-        ids=ids)
+        ids=ids)    
     
   print("Setup done.")
+  
+  
