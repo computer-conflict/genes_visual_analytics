@@ -1,6 +1,6 @@
 <template>
   <client-only>
-    <div class="h-screen flex flex-col justify-center ">
+    <div class="h-screen block">
       <div v-if="errorLoading">
         {{ "Error al cargar la grafica" }}
       </div>
@@ -38,12 +38,11 @@ const {data, error, pending} = useFetch(plotUrl, {
     return data
   },
 })
-watch(error, () => {
+watch(error, (value) => {
   errorLoading.value = true
 })
 watch(data, (value) => {
   errorLoading.value = false
-  debugger
   Bokeh.embed.embed_item(JSON.parse(value), plot.value)
 })
 
