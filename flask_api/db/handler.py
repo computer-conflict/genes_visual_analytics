@@ -29,7 +29,7 @@ def exec_query(new_query):
 
 #https://stackoverflow.com/questions/69295551/loading-html-file-content-in-a-vue-component
 
-def exec_plotter():
+def exec_plotter(samples_index):
   client = chromadb.PersistentClient(path="./db/local_client")
 
   # Creamos la source
@@ -38,17 +38,22 @@ def exec_plotter():
 
   gen_expresion_dataset_path = './db/datasets/HiSeqV2_PANCAN'
   gen_exp_df = pd.read_table(gen_expresion_dataset_path)
+  if samples_index != '-1':
+    samples_index.append(0)
+    gen_exp_df = gen_exp_df.iloc[:, samples_index]
+    gen_exp_df.set_index('symbol', inplace=True)
+    mean = gen_exp_df.mean(axis=1)
+    gen_exp_df = gen_exp_df.reset_index()
+    gen_exp_df['avg_gen_impresion'] = list(mean.reset_index()[0])
 
   # Base df
   df = pd.merge(desc_df, gen_exp_df, on='symbol')
-  
-  samples = df.columns[2:]
-  gen_expresions = df.loc[:, samples]
 
   summaries_collection = client.get_collection("gen_summaries")
   summaries_metadatas = summaries_collection.get(ids=list(df["symbol"]), include=["metadatas"])["metadatas"]
   set_collection = client.get_collection("SET-HiSeqV2_PANCAN")
   set_metadatas = set_collection.get(ids=list(df["symbol"]), include=["metadatas"])["metadatas"]
+  samples_avg = df['avg_gen_impresion'] if samples_index != '-1' else [d['avg_gen_impresion'] for d in set_metadatas]
 
   data = {
     'indexes': np.arange(0,len(df)),
@@ -58,7 +63,7 @@ def exec_plotter():
     'summary_y':[d['y'] for d in summaries_metadatas],
     'samples_x': [d['x'] for d in set_metadatas],
     'samples_y': [d['y'] for d in set_metadatas],
-    'sample_avg': [d['avg_gen_impresion'] for d in set_metadatas]
+    'sample_avg': samples_avg
   }
   source = ColumnDataSource(data)
 
@@ -81,38 +86,40 @@ def exec_plotter():
   """
   
   plot = figure(height=500, width=int(1439.2*0.66), margin=(0, 20, 0, 0), tooltips=TOOLTIPS,
-                tools="crosshair,box_select,pan,reset,wheel_zoom,lasso_select")
+                tools="crosshair,box_select,pan,reset,wheel_zoom,lasso_select",
+                title='Gen summaries view')
   plot.scatter(x='summary_x', y='summary_y', source=source, marker="circle", radius=0.02,
                 color={'field': 'sample_avg', 'transform': color_map})
   gen_plot = figure(height=500, width=int(1439.2*0.33),
       tools="crosshair,box_select,pan,reset,wheel_zoom",
-      title='Vista de los genes', tooltips=TOOLTIPS)
+      title='Gen view', tooltips=TOOLTIPS)
   gen_plot.hbar(y='indexes', right='sample_avg', width=0.9, source=source,
                 color={'field': 'sample_avg', 'transform': color_map})
-  impresions_plot = figure(height=400, width=int(1439.2*0.33), 
+  expresions_plot = figure(height=400, width=int(1439.2*0.60), margin=(0 ,int(1439.2*0.20), 30, int(1439.2*0.20)), 
       tools="crosshair,box_select,pan,reset,wheel_zoom",
-      title='Expresiones de los genes', tooltips=TOOLTIPS)
-  impresions_plot.scatter(x='samples_x', y='samples_y', source=source, marker="circle", radius=0.02,
+      title='Gen expression', tooltips=TOOLTIPS)
+  expresions_plot.scatter(x='samples_x', y='samples_y', source=source, marker="circle", radius=0.02,
                 color={'field': 'sample_avg', 'transform': color_map})
-  
-
-  div_container = Div()
-  impresions_container = Div()
-
-  def callback(attr, old, new):
-    print("LassoTool callback executed on Patch {}".format(old))
-
-  source.selected.on_change('indices',callback)
 
   div = layout(plot, height=500)
-  sumary_container = row(div, gen_plot, margin=(0, 0, 20, 0))  
-  #plot_layout = layout([[div_container, plot, impresions_plot]])
+  sumary_container = row(div, gen_plot, margin=(0, 0, 20, 0))
+  sample_selector = layout()
+  sample_selector.css_classes = ['sample_selector']
+
   plot_layout = layout(
     sumary_container,
     row(
-        column(impresions_plot)
+        column(expresions_plot)
     )
   )
   plot_layout.css_classes = ['flex','gap-2']
   
   return plot_layout
+
+def get_set_samples(set_name):
+  dataset_path = f"./db/datasets/{set_name}"
+  df = pd.read_table(dataset_path).drop_duplicates()
+
+  samples = df.columns[1:]
+
+  return list(map(lambda sample: {'name': sample[1], 'value': sample[0]+1},enumerate(samples)))

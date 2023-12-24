@@ -1,5 +1,5 @@
 from flask import request, jsonify, abort
-from db.handler import exec_query, exec_plotter
+from db.handler import exec_query, exec_plotter, get_set_samples
 from api import app
 
 
@@ -18,16 +18,25 @@ def search():
   
   query = {
     "query_texts": query_text,
-    "n_results": 5
+    "n_results": 25
   }
   
   return jsonify(exec_query(query))
 
 @app.route('/plot')
-def plotter():
+def plotter():  
+  samples_index = request.args.get('samples', '-1')
+  if samples_index != '-1':
+    samples_index = list(map(int, samples_index.split(',')))
   try:
-    plot = exec_plotter()
+    plot = exec_plotter(samples_index)
     return jsonify(json.dumps(json_item(plot, "plot")))
   except Exception as e:
     print(f"Error: {str(e)}")
     abort(500)
+
+@app.route('/get_samples')
+def get_samples():
+  set_name = request.args.get('set_name','')
+  
+  return get_set_samples(set_name)
