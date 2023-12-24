@@ -87,6 +87,8 @@ def chroma_setup():
   datasets = {
     'gen_summaries': 'genes_human_58347_used_in_sciPlex2_brief_info_by_mygene_package.csv',
     'SET-HiSeqV2_PANCAN': 'HiSeqV2_PANCAN',
+    'SET-HiSeqV2_DLBC': 'HiSeqV2_DLBC',
+    'SET-HiSeqV2_KICH': 'HiSeqV2_KICH'
   }
 
   for key, value in datasets.items():

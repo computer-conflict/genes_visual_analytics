@@ -26,6 +26,11 @@
   </div>
 </template>
 
+<script setup>
+import Multiselect from 'vue-multiselect'
+</script>
+
+<style src="vue-multiselect/dist/vue-multiselect.css"></style>
 
 <style lang="scss">
 .page{

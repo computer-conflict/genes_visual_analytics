@@ -1,5 +1,5 @@
 from flask import request, jsonify, abort
-from db.handler import exec_query, exec_plotter, get_set_samples
+from db.handler import exec_query, exec_plotter, get_set_samples, get_sets_list
 from api import app
 
 
@@ -25,11 +25,13 @@ def search():
 
 @app.route('/plot')
 def plotter():  
+  set_name = request.args.get('set','HiSeqV2_PANCAN')
+
   samples_index = request.args.get('samples', '-1')
   if samples_index != '-1':
     samples_index = list(map(int, samples_index.split(',')))
   try:
-    plot = exec_plotter(samples_index)
+    plot = exec_plotter(samples_index, set_name)
     return jsonify(json.dumps(json_item(plot, "plot")))
   except Exception as e:
     print(f"Error: {str(e)}")
@@ -40,3 +42,8 @@ def get_samples():
   set_name = request.args.get('set_name','')
   
   return get_set_samples(set_name)
+
+@app.route('/get_sets_list')
+def get_available_sets():  
+  return get_sets_list()
+

@@ -29,14 +29,14 @@ def exec_query(new_query):
 
 #https://stackoverflow.com/questions/69295551/loading-html-file-content-in-a-vue-component
 
-def exec_plotter(samples_index):
+def exec_plotter(samples_index, set_name):
   client = chromadb.PersistentClient(path="./db/local_client")
 
   # Creamos la source
   desc_dataset_path = './db/datasets/genes_human_58347_used_in_sciPlex2_brief_info_by_mygene_package.csv'
   desc_df = pd.read_csv(desc_dataset_path, usecols=["symbol", "summary"]).dropna().drop_duplicates(subset=['symbol'])
 
-  gen_expresion_dataset_path = './db/datasets/HiSeqV2_PANCAN'
+  gen_expresion_dataset_path = f"./db/datasets/{set_name}"
   gen_exp_df = pd.read_table(gen_expresion_dataset_path)
   if samples_index != '-1':
     samples_index.append(0)
@@ -78,8 +78,8 @@ def exec_plotter(samples_index):
       class="figure-tootip"
       style="overflow: none; width: 300px" 
     >
-      <strong>Nombre</strong>
-      <p>@{symbol}</p>
+      <p><strong>Nombre:</strong>@{symbol}</p>
+      <p><strong>Gen avg expression:</strong>@{sample_avg}</p>
       <strong>Descripción</strong>
       <p>@{summary}</p>
     </div>
@@ -123,3 +123,6 @@ def get_set_samples(set_name):
   samples = df.columns[1:]
 
   return list(map(lambda sample: {'name': sample[1], 'value': sample[0]+1},enumerate(samples)))
+
+def get_sets_list():
+  return ['HiSeqV2_PANCAN', 'HiSeqV2_DLBC', 'HiSeqV2_KICH']
