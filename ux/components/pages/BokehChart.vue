@@ -37,7 +37,10 @@
         </div>
       </div>
 
-      <div v-if="errorLoading">
+      <div
+        v-if="errorLoading"
+        class="flex grow justify-center"
+      >
         {{ "Error al cargar la grafica" }}
       </div>
     
