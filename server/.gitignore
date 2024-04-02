@@ -1,0 +1,8 @@
+db/local_client/*
+db/sets/*
+
+# Local env files
+venv
+.venv
+__pycache__
+.vscode
