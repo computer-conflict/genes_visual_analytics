@@ -1,7 +1,3 @@
-# Server datasets
-server/db/datasets/*
-server/db/sets/*
-
 # Node dependencies
 node_modules
 
