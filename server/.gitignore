@@ -1,0 +1,9 @@
+# Server datasets
+db/datasets/impressions_sets/*
+db/local_client/*
+
+# Local env files
+venv
+.venv
+__pycache__
+.vscode

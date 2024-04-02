@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.14.7/dist/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+    
+    <title>Chromagene</title>
+  </head>
+  <body>
+    <nav class="flex flex-row items-center justify-between m-5">
+      <a
+        href="/"
+        class="flex flex-row items-center gap-5"
+      >
+        <img
+          src="/assets/media/logos/chromagens-logo.svg"
+          alt="SVG image"
+          sizes="100px sm:70px md:70px lg:70px"
+          class="logo-img"
+        />
+        <span class="text-xl">CHROMAGENS</span>
+      </a>
+      <div class="flex flex-row gap-10">
+        <a
+          href="/"
+          class="flex flex-row items-center"
+        >            
+          <span class="text-l">Gráficas</span>
+        </a>
+        <a
+          href="/searcher"
+          class="flex flex-row items-center"
+        >
+          <span class="text-l">Buscador</span>
+        </a>
+      </div>
+      <div class="flex flex-row text-l">
+        <a
+          href="/configuration"
+          class="flex flex-row items-center"
+        >
+          Configuración
+      </a>
+      </div>
+    </nav>
+    
+    <div>
+      This Bokeh app below served by a Bokeh server that has been embedded
+      in another web app framework. For more information see the section
+      <a  target="_blank" href="https://docs.bokeh.org/en/latest/docs/user_guide/server.html#embedding-bokeh-server-as-a-library">Embedding Bokeh Server as a Library</a>
+      in the User's Guide.
+    </div>
+    {{ script|safe }}
+
+    <h3>Selected gene</h3>
+    {% for g in gene %}
+      <li><a href="{{ g.href }}">{{ g.name }}</a></li>
+    {% endfor %}
+    </ul>
+  </body>
+</html>

@@ -1,0 +1,8 @@
+parallel; multiple_add; 4; 1065.0411891937256
+parallel; multiple_add; 8; 1044.2888140678406
+parallel; multiple_add; 12; 1044.2888140678406
+parallel; multiple_add; 16; 1598.1122863292694
+parallel; multiple_add; 64; 944.9598035812378
+loop; multiple_add; 1; 1598.1122863292694
+o(1); single_collection_add; 1; 1393.2273700237274
+
