@@ -65,9 +65,9 @@ def summarize_batch():
     return response
 
 
-@app.route("/")
+@app.route("/ping")
 def hello_world():
-    return "<p>Hello, World!</p>"
+    return "pong"
   
 if __name__ == "__main__":
   app.run(host="0.0.0.0", port=5000)
