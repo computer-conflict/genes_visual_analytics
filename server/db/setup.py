@@ -48,27 +48,13 @@ def create_summary_collection(client, collection_name, df_path):
   print(f"Done: {end_time - start_time} s")
 
 
-def add_doc_to_collection(collection, row):
-  collection.add(
-    documents= row[0],
-    embeddings=list(row[1:-3]),
-    metadatas= {
-      'symbol': row[0],
-      'x': row[-1],
-      'y': row[-2],
-      'avg': row[-3]
-    },
-    ids=[row[0]])
-  return True
-  
-
 def create_set_collection(client, collection_name):
   print(f"Creating collection {collection_name}.")
   
   # Create set collections
   collection = client.create_collection(collection_name)
   
-  gen_expresion_dataset_path = f"./db/sets/{collection_name}"
+  gen_expresion_dataset_path = f"./db/datasets/impressions_sets/{collection_name}"
   gen_exp_df = pd.read_table(gen_expresion_dataset_path).drop_duplicates()
   
   # Calc avg expression 
@@ -90,6 +76,20 @@ def create_set_collection(client, collection_name):
 
   gen_exp_df['x'] = gen_expresions_u[:, 0]
   gen_exp_df['y'] = gen_expresions_u[:, 1]
+
+  
+  def add_doc_to_collection(collection, row):
+    collection.add(
+      documents= row[0],
+      embeddings=list(row[1:-3]),
+      metadatas= {
+        'symbol': row[0],
+        'x': row[-1],
+        'y': row[-2],
+        'avg': row[-3]
+      },
+      ids=[row[0]])
+    return True
 
   print(f"Adding {collection_name} set to Chroma.")
   start_time = time.time()
@@ -116,8 +116,6 @@ def load_sample_set(client, collection_name):
     client.get_collection(collection_name)
   except:
     create_set_collection(client, collection_name)
-     
-
   
 #Db setup
 def chroma_setup():

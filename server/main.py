@@ -31,12 +31,11 @@ def bkapp(doc):
   set_name = 'ACC'
   client = chromadb.PersistentClient(path="./db/local_client")
 
-
   # Creamos la source
   desc_dataset_path = './db/datasets/genes_human_58347_used_in_sciPlex2_brief_info_by_mygene_package.csv'
   desc_df = pd.read_csv(desc_dataset_path, usecols=["symbol", "summary"]).dropna().drop_duplicates(subset=['symbol'])
 
-  gen_expresion_dataset_path = f"./db/sets/{set_name}"
+  gen_expresion_dataset_path = f"./datasets/impressions_sets/{set_name}"
   gen_exp_df = pd.read_table(gen_expresion_dataset_path)
 
   # Base df
@@ -60,10 +59,9 @@ def bkapp(doc):
   source = ColumnDataSource(data) 
 
 
-
   # ----  Datasets Selector ---- #
   def change_set(attr, old, new):
-    set_path = f"./db/sets/{new}"
+    set_path = f"./datasets/impressions_sets/{new}"
     gen_exp_df = pd.read_table(set_path)
     # Base df
     df = pd.merge(desc_df, gen_exp_df, how='inner', left_on='symbol', right_on='sample')
@@ -81,16 +79,16 @@ def bkapp(doc):
       'samples_y': [d['y'] for d in set_metadatas]
     }
     source.data = new_data
-    
+  select_options = ['ACC', 'BRCA', 'CHOL', 'COADREAD', 'ESCA', 'HNSC', 'KIRC', 'LAML', 'LIHC']
   select = Select(title="Conjunto de datos a visualizar:", value="ACC",
-                  options=["ACC", "BRCA", "baz", "quux"], sizing_mode="stretch_width",
-                  margin=[10, 0])
+                  options=select_options,
+                  sizing_mode="stretch_width", margin=[10, 0])
   select.on_change('value', change_set)
   select.styles = {'padding': '0 25px'}
   select.css_classes = ["form-control", "my-custom-class"]
 
 
-  # ---- Summary output ---- #
+  # ---- Selection output ---- #
   selection_h2 = Paragraph(text='Resumen de la selección')
   selection_h2.css_classes = ["h2"]
   selection_h2.styles = {
@@ -100,13 +98,31 @@ def bkapp(doc):
     'font-weight': 'bold !important',
     'text-transform': 'uppercase !important'
   }
-  pre = Paragraph(text='The gene selection could not be summarize')
-  pre.styles = {
+  selection_p = Paragraph(text='The gene selection could not be summarize')
+  selection_p.styles = {
     'color': '#5C5C5C !important',
     'font-size': '1.2rem !important'
   }
-  summary_group = column(row(selection_h2, margin=[20, 0]), pre)
+  summary_group = column(row(selection_h2, margin=[20, 0]), selection_p)
   summary_group.styles = {'padding': '0 25px'}
+  
+  # ---- Summary output Bart-cnn ---- #
+  bart_h2 = Paragraph(text='Resumen de la selección')
+  bart_h2.css_classes = ["h2"]
+  bart_h2.styles = {
+    'padding': '5px 0',
+    'display': 'block !important',
+    'font-size': '1.17em !important',
+    'font-weight': 'bold !important',
+    'text-transform': 'uppercase !important'
+  }
+  bart_p = Paragraph(text='The gene selection could not be summarize')
+  bart_p.styles = {
+    'color': '#5C5C5C !important',
+    'font-size': '1.2rem !important'
+  }
+  bart_group = column(row(bart_h2, margin=[20, 0]), bart_p)
+  bart_group.styles = {'padding': '0 25px'}
   
 
   # ---- Plots ---- #
@@ -136,23 +152,33 @@ def bkapp(doc):
   expresions_plot.scatter(x='samples_x', y='samples_y',
                           source=source, marker="circle", radius=0.02, selection_color="red",  nonselection_fill_alpha=0.01)
   
-  
   def select_group(event):
     if event.final is True:
       indices = source.selected.indices
       gen_descriptions = '.'.join(map(str, source.data['summary'][indices]))
-      pre.text = 'The selection is being processed...'
-      r = requests.post('http://127.0.0.1:5000/summarize',
+      
+      # led-base-book-summary summarization
+      led_response = requests.post('http://127.0.0.1:5000/summarize',
                        data={
                          'summary_text': gen_descriptions
                        })
-      print(r)
-      selection_h2.text = 'Resumen de la selección'
+      selection_h2.text = 'Resumen de la selección (led-base-book-summary)'
       selection_summary = 'The gene selection could not be summarize'
-      if (r.status_code == 200):
-        selection_summary = r.text
-      pre.text = selection_summary
-      print(source.selected.indices)
+      if (led_response.status_code == 200):
+        selection_summary = led_response.text
+        selection_p.text = selection_summary
+        
+      # bart-large-cnn summarization
+      bart_response = requests.post('http://127.0.0.1:5000/summarize',
+                       data={
+                         'summary_text': gen_descriptions
+                       })
+      bart_h2.text = 'Resumen de la selección (led-base-book-summary)'
+      selection_summary = 'The gene selection could not be summarize'
+      if (bart_response.status_code == 200):
+        selection_summary = bart_response.text
+        bart_p.text = selection_summary
+        
   summaries_plot.on_event(SelectionGeometry, select_group)
   expresions_plot.on_event(SelectionGeometry, select_group)
 
