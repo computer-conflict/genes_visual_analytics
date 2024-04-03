@@ -8,7 +8,7 @@ app = Flask(__name__)
 #https://huggingface.co/allenai/led-base-16384
 #https://huggingface.co/pszemraj/led-base-book-summary?text=large+earthquakes+along+a+given+fault+segment+do+not+occur+at+random+intervals+because+it+takes+time+to+accumulate+the+strain+energy+for+the+rupture.+The+rates+at+which+tectonic+plates+move+and+accumulate+strain+at+their+boundaries+are+approximately+uniform.+Therefore%2C+in+first+approximation%2C+one+may+expect+that+large+ruptures+of+the+same+fault+segment+will+occur+at+approximately+constant+time+intervals.+If+subsequent+main+shocks+have+different+amounts+of+slip+across+the+fault%2C+then+the+recurrence+time+may+vary%2C+and+the+basic+idea+of+periodic+mainshocks+must+be+modified.+For+great+plate+boundary+ruptures+the+length+and+slip+often+vary+by+a+factor+of+2.+Along+the+southern+segment+of+the+San+Andreas+fault+the+recurrence+interval+is+145+years+with+variations+of+several+decades.+The+smaller+the+standard+deviation+of+the+average+recurrence+interval%2C+the+more+specific+could+be+the+long+term+prediction+of+a+future+mainshock.
 
-@app.route("/summarize_large", methods=['POST', 'GET'])
+@app.route("/summarize_led", methods=['POST', 'GET'])
 def summarize_large():
   #summarizer = pipeline("summarization", model="philschmid/bart-large-cnn-samsum")
 
@@ -38,7 +38,7 @@ def summarize_large():
   print(response)
   return response
 
-@app.route("/summarize_batch", methods=['POST', 'GET'])
+@app.route("/summarize_bart", methods=['POST', 'GET'])
 def summarize_batch():
   response = 'Descriptions cannot be summarized'
   
@@ -48,7 +48,7 @@ def summarize_batch():
     if request.method == 'POST':
       gene_summaries = request.form['summary_text']
       
-      def summarize_article(articles: list[str]):
+      def summarize_article(articles):
         full_article = ''.join(articles)
         if(len(full_article) < 1024):
           return summarizer(full_article, max_length=130, min_length=30, do_sample=False)
