@@ -61,8 +61,12 @@ def create_set_collection(client, collection_name):
   # Create set collections
   collection = client.create_collection(collection_name)
   
-  gen_expresion_dataset_path = f"./db/datasets/impressions_sets/{collection_name}"
+  gen_expresion_dataset_path = f"./db/datasets/impressions_sets/{collection_name.split('_')[0]}"
   gen_exp_df = pd.read_table(gen_expresion_dataset_path).drop_duplicates()
+  
+  gen_exp_df.columns = [f"{collection_name.split('_')[0]}" + col if col != 'sample' else col for col in gen_exp_df.columns]
+  column_names = list(gen_exp_df.columns)
+  gen_exp_df.loc[gen_exp_df['sample'].str.startswith('OR'), column_names[1:]] = 100
   
   # Calc avg expression 
   gen_exp_df.set_index('sample', inplace=True)
@@ -115,7 +119,7 @@ def create_set_collection(client, collection_name):
   #  documents= list(gen_exp_df["symbol"]),
   #  metadatas= gen_exp_df[['symbol', 'x', 'y', 'avg_gen_impresion']].to_dict(orient='records'),
   #  ids=list(gen_exp_df["symbol"]))
-  #end_time = time.time()
+  end_time = time.time()
   print(f"Collection created: {end_time - start_time} s")
 
 def load_sample_set(client, collection_name):
@@ -129,7 +133,10 @@ def chroma_setup():
   print("Fetching local client...")
   # Create db and make a new collection
   client = chromadb.PersistentClient(path="./db/local_client")
-  
+  collections = client.list_collections()
+  for collection in collections:
+    print(collection)
+
   # Load dataset gen summaries
   try:
     client.get_collection('gen_summaries')
@@ -141,7 +148,7 @@ def chroma_setup():
   samples = ['ACC', 'BRCA', 'CHOL', 'COADREAD', 'ESCA', 'HNSC', 'KIRC', 'LAML', 'LIHC',
             'LUSC', 'OV1', 'PCPG', 'READ', 'SKCM', 'TGCT', 'THYM', 'UCS', 'BLCA', 'CESC',
             'COAD', 'DLBC', 'GBM', 'KICH', 'KIRP', 'LGG', 'LUAD', 'MESO', 'PAAD', 'PRAD', 'SARC', 'STAD', 'THCA', 'UCEC', 'UVM']
-
+  samples = ['KIRP_5', 'KICH_5']
     
   print(f"Loading database...")
   start_time = time.time()

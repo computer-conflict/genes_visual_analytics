@@ -26,82 +26,88 @@ import math
 
 app = Flask(__name__)
 
-def getDataframe(set_name, compare_set_name):
+def getCommonGenesList(df_name_1, df_name_2):
   desc_dataset_path = './db/datasets/genes_human_58347_used_in_sciPlex2_brief_info_by_mygene_package.csv'
   desc_df = pd.read_csv(desc_dataset_path, usecols=["symbol", "summary"]).dropna().drop_duplicates(subset=['symbol'])
 
-  gen_expresion_dataset_path = f"./db/datasets/impressions_sets/{set_name}"
-  gen_exp_df = pd.read_table(gen_expresion_dataset_path)
+  path = f"./db/datasets/impressions_sets/{df_name_1.split('_')[0]}"
+  gen_exp_1_df = pd.read_table(path)
 
-  compare_dataset_path = f"./db/datasets/impressions_sets/{compare_set_name}"
-  compare_df = pd.read_table(compare_dataset_path)
+  path = f"./db/datasets/impressions_sets/{df_name_2.split('_')[0]}"
+  gen_exp_2_df = pd.read_table(path)
 
-  # Base df
-  df = pd.merge(desc_df, gen_exp_df, how='inner', left_on='symbol', right_on='sample')
-  result_df = pd.merge(df, compare_df, how='inner', left_on='symbol', right_on='sample')
-  return result_df
+  # Merge dataframes on inner gene name.
+  # 'symbol' for descriptions, 'sample' for gene expressions
+  df = pd.merge(desc_df, gen_exp_1_df, how='inner', left_on='symbol', right_on='sample')
+  result_df = pd.merge(df, gen_exp_2_df, how='inner', left_on='symbol', right_on='sample')
   
+  gene_list = list(result_df["symbol"])
+  return gene_list
+
+def getSortedCollectionMetadata(client, gene_list, collection_name):  
+  collection = client.get_collection(collection_name)
+  metadatas = collection.get(ids=gene_list, include=["metadatas"])["metadatas"]
+  return sorted(metadatas, key=lambda row: row['symbol'])
+
 def bkapp(doc):
-  set_name = 'KICH'
-  compare_set_name = 'KIRP'
   client = chromadb.PersistentClient(path="./db/local_client")
-
-  # Creamos la source
-  df = getDataframe(set_name, compare_set_name)
-
-  summaries_collection = client.get_collection("gen_summaries")
-  summaries_metadatas = summaries_collection.get(ids=list(df["symbol"]), include=["metadatas"])["metadatas"]
   
-  set_collection = client.get_collection(set_name)
-  set_metadatas = set_collection.get(ids=list(df["symbol"]), include=["metadatas"])["metadatas"]
+  set_1_name = 'KICH_5'
+  set_2_name = 'KIRP_5'
   
-  compare_set_collection = client.get_collection(compare_set_name)
-  compare_metadatas = compare_set_collection.get(ids=list(df["symbol"]), include=["metadatas"])["metadatas"]
+  common_gene_list = getCommonGenesList(set_1_name, set_2_name)
 
+  summaries_metadatas = getSortedCollectionMetadata(client, common_gene_list, 'gen_summaries')
+  expresions_set_1_data = getSortedCollectionMetadata(client, common_gene_list, set_1_name)
+  expresions_set_2_data = getSortedCollectionMetadata(client, common_gene_list, set_2_name)
+  
   data = {
-    'indexes': np.arange(0,len(df)),
+    'indexes': np.arange(0, len(common_gene_list)),
     'symbol': [d['symbol'] for d in summaries_metadatas],
     'summary': [d['summary'] for d in summaries_metadatas],
     'summary_x': [d['x'] for d in summaries_metadatas],
     'summary_y': [d['y'] for d in summaries_metadatas],
-    'samples_x': [d['x'] for d in set_metadatas],
-    'samples_y': [d['y'] for d in set_metadatas],
-    'compare_x': [d['x'] for d in compare_metadatas],
-    'compare_y': [d['y'] for d in compare_metadatas]
+    'set_1_x': [d['x'] for d in expresions_set_1_data],
+    'set_1_y': [d['y'] for d in expresions_set_1_data],
+    'set_2_x': [d['x'] for d in expresions_set_2_data],
+    'set_2_y': [d['y'] for d in expresions_set_2_data]
   }
   source = ColumnDataSource(data) 
 
 
   # ----  Datasets Selector ---- #
-  def change_set(attr, old, new):
-    compare_set_name = compare_select.value
-    df = getDataframe(new, compare_set_name)
-    set_collection = client.get_collection(new)
-    set_metadatas = set_collection.get(ids=list(df["symbol"]), include=["metadatas"])["metadatas"]
-    source.data['samples_x'] = [d['x'] for d in set_metadatas]
-    source.data['samples_y'] = [d['y'] for d in set_metadatas]
-  select_options = ['ACC', 'BRCA', 'CHOL', 'COADREAD', 'ESCA', 'HNSC', 'KIRC', 'LAML', 'LIHC',
-            'LUSC', 'OV1', 'PCPG', 'READ', 'SKCM', 'TGCT', 'THYM', 'UCS', 'BLCA', 'CESC',
-            'COAD', 'DLBC', 'GBM', 'KICH', 'KIRP', 'LGG', 'LUAD', 'MESO', 'PAAD', 'PRAD', 'SARC', 'STAD', 'THCA', 'UCEC', 'UVM']
-  select = Select(title="Conjunto de datos a visualizar:", value=set_name,
-                  options=select_options,
-                  sizing_mode="stretch_width", margin=[10, 0])
-  select.on_change('value', change_set)
-  select.styles = {'padding': '0 25px'}
-  
-  def change_compare_set(attr, old, new):
-    set_name = select.value
-    df = getDataframe(set_name, new)
+  select_options = ['ACC', 'BLCA', 'BRCA', 'CESC', 'CHOL', 'COAD', 'COADREAD',
+                  'DLBC', 'ESCA', 'GBM', 'HNSC', 'KICH', 'KICH_5', 'KIRC', 'KIRP', 'KIRP_5', 'LAML',
+                  'LGG', 'LIHC', 'LUAD', 'LUSC', 'MESO', 'OV1', 'PAAD', 'PCPG',
+                  'PRAD', 'READ', 'SARC', 'SKCM', 'STAD', 'TGCT', 'THCA', 'THYM', 'UCEC', 'UCS', 'UVM']
+  def change_set_1(attr, old, new):
+    set_2_name = select_2.value
+    common_gene_list = getCommonGenesList(new, set_2_name)
+    expresions_set_1_data = getSortedCollectionMetadata(client, common_gene_list, new)
     
-    compare_set_collection = client.get_collection(new)
-    compare_metadatas = compare_set_collection.get(ids=list(df["symbol"]), include=["metadatas"])["metadatas"]
-    source.data['compare_x'] = [d['x'] for d in compare_metadatas]
-    source.data['compare_y'] = [d['y'] for d in compare_metadatas]
-  compare_select = Select(title="Conjunto de datos a comparar:", value=compare_set_name,
-                  options=select_options,
+    source.data['set_1_y'] = [d['x'] for d in expresions_set_1_data]
+    source.data['set_1_y'] = [d['y'] for d in expresions_set_1_data]
+  select_1 = Select(title="Conjunto de datos a visualizar:",
+                  value=set_1_name,
+                  options=sorted(select_options),
                   sizing_mode="stretch_width", margin=[10, 0])
-  compare_select.on_change('value', change_compare_set)
-  compare_select.styles = {'padding': '0 25px'}
+  select_1.on_change('value', change_set_1)
+  select_1.styles = {'padding': '0 25px'}
+  
+  def change_set_2(attr, old, new):    
+    set_1_name = select_1.value
+    common_gene_list = getCommonGenesList(new, set_1_name)
+    expresions_set_2_data = getSortedCollectionMetadata(client, common_gene_list, new)
+    
+    source.data['set_2_y'] = [d['x'] for d in expresions_set_2_data]
+    source.data['set_2_y'] = [d['y'] for d in expresions_set_2_data]
+
+  select_2 = Select(title="Conjunto de datos a visualizar:",
+                  value=set_2_name,
+                  options=sorted(select_options),
+                  sizing_mode="stretch_width", margin=[10, 0])
+  select_2.on_change('value', change_set_2)
+  select_2.styles = {'padding': '0 25px'}
 
 
   # ---- Summary output Bart-cnn ---- #
@@ -170,29 +176,29 @@ def bkapp(doc):
   
   #  -- Plots figures & callbacks
   #     -- Summaries
-  summaries_plot = figure(tooltips=TOOLTIPS, match_aspect=True,
-                tools="crosshair,box_select,pan,reset,wheel_zoom,lasso_select",
-                title='Representación semántica de los genes', sizing_mode='scale_width')
+  summaries_plot = figure(tooltips=TOOLTIPS,
+                          match_aspect=True,
+                          tools="crosshair,box_select,pan,reset,wheel_zoom,lasso_select",
+                          title='Representación semántica de los genes',
+                          sizing_mode='scale_width')
   summaries_plot.scatter(x='summary_x', y='summary_y', source=source, marker="circle", radius=0.02, selection_color="red", nonselection_fill_alpha=0.01)
 
   #     -- Gene expresions
-  expresions_plot = figure(name='expresions_plot', match_aspect=True,
+  set_1_plot = figure(name='expresions_plot', match_aspect=True,
       tools="crosshair,box_select,pan,reset,wheel_zoom",
       title='Representación de las expresiones genéticas', tooltips=TOOLTIPS)
-  expresions_plot.scatter(x='samples_x', y='samples_y',
-                          source=source, marker="circle", radius=0.02, selection_color="red",  nonselection_fill_alpha=0.01)
+  set_1_plot.scatter(x='set_1_x', y='set_1_y', source=source, marker="circle",
+                          radius=0.02, selection_color="red",  nonselection_fill_alpha=0.01)
   
-  compare_plot = figure(name='expresions_plot', match_aspect=True,
+  set_2_plot = figure(name='expresions_plot', match_aspect=True,
       tools="crosshair,box_select,pan,reset,wheel_zoom",
       title='Representación de las expresiones genéticas', tooltips=TOOLTIPS)
-  compare_plot.scatter(x='compare_x', y='compare_y',
-                          source=source, marker="circle", radius=0.02, selection_color="red",  nonselection_fill_alpha=0.01)
+  set_2_plot.scatter(x='set_2_x', y='set_2_y', source=source, marker="circle",
+                       radius=0.02, selection_color="red",  nonselection_fill_alpha=0.01)
   
   def callback_handler(event):    
     gene_name = event.item.text
     print(f"Se hizo clic en el enlace para el gen {gene_name}")
-  
-
   
   def select_group(event):
     if event.final is True:
@@ -242,16 +248,16 @@ def bkapp(doc):
         
         selected_gene_list.append(div_enlace)
       gene_display.children = selected_gene_list
-        
+
   summaries_plot.on_event(SelectionGeometry, select_group)
-  expresions_plot.on_event(SelectionGeometry, select_group)
-  compare_plot.on_event(SelectionGeometry, select_group)
+  set_1_plot.on_event(SelectionGeometry, select_group)
+  set_2_plot.on_event(SelectionGeometry, select_group)
 
   #  -- Visualization
-  plots = gridplot([[summaries_plot], [gridplot([[expresions_plot, compare_plot]], sizing_mode='scale_both')]], sizing_mode='scale_both')
+  plots = gridplot([[summaries_plot, column([select_1, set_1_plot], sizing_mode='scale_both'), column([select_2, set_2_plot], sizing_mode='scale_width')]], sizing_mode='scale_both')
   plots.styles = {'padding': '0 25px'}
 
-  doc.add_root(column([select, compare_select, row(plots, sizing_mode='scale_both', min_height=700), gpt_group, gene_group], sizing_mode="scale_width"))
+  doc.add_root(column([row(plots, sizing_mode='scale_both', min_height=700), gpt_group, gene_group], sizing_mode="scale_width"))
   doc.theme = Theme(filename="theme.yaml")
 
 def brushing(doc):
@@ -368,19 +374,68 @@ def brushing(doc):
   doc.add_root(column([select, compare_select, row(plots, sizing_mode='scale_both', min_height=700)], sizing_mode="scale_width"))
   doc.theme = Theme(filename="theme.yaml")
 
-
 def searcher(doc):
   # ---- Plots ---- #
   client = chromadb.PersistentClient(path="./db/local_client")
-  summaries_collection = client.get_collection("gen_summaries")
-  summaries_metadatas = summaries_collection.get(include=["metadatas"])["metadatas"]
+  
+  set_1_name = 'KICH_5'
+  set_2_name = 'KIRP_5'
+  
+  common_gene_list = getCommonGenesList(set_1_name, set_2_name)
+
+  summaries_metadatas = getSortedCollectionMetadata(client, common_gene_list, 'gen_summaries')
+  expresions_set_1_data = getSortedCollectionMetadata(client, common_gene_list, set_1_name)
+  expresions_set_2_data = getSortedCollectionMetadata(client, common_gene_list, set_2_name)
+  
   data = {
+    'indexes': np.arange(0, len(common_gene_list)),
     'symbol': [d['symbol'] for d in summaries_metadatas],
     'summary': [d['summary'] for d in summaries_metadatas],
     'summary_x': [d['x'] for d in summaries_metadatas],
     'summary_y': [d['y'] for d in summaries_metadatas],
+    'set_1_x': [d['x'] for d in expresions_set_1_data],
+    'set_1_y': [d['y'] for d in expresions_set_1_data],
+    'set_2_x': [d['x'] for d in expresions_set_2_data],
+    'set_2_y': [d['y'] for d in expresions_set_2_data]
   }
   source = ColumnDataSource(data) 
+
+
+  # ----  Datasets Selector ---- #
+  select_options = ['ACC', 'BLCA', 'BRCA', 'CESC', 'CHOL', 'COAD', 'COADREAD',
+                  'DLBC', 'ESCA', 'GBM', 'HNSC', 'KICH', 'KICH_5', 'KIRC', 'KIRP', 'KIRP_5', 'LAML',
+                  'LGG', 'LIHC', 'LUAD', 'LUSC', 'MESO', 'OV1', 'PAAD', 'PCPG',
+                  'PRAD', 'READ', 'SARC', 'SKCM', 'STAD', 'TGCT', 'THCA', 'THYM', 'UCEC', 'UCS', 'UVM']
+  def change_set_1(attr, old, new):
+    set_2_name = select_2.value
+    common_gene_list = getCommonGenesList(new, set_2_name)
+    expresions_set_1_data = getSortedCollectionMetadata(client, common_gene_list, new)
+    
+    source.data['set_1_y'] = [d['x'] for d in expresions_set_1_data]
+    source.data['set_1_y'] = [d['y'] for d in expresions_set_1_data]
+  select_1 = Select(title="Conjunto de datos a visualizar:",
+                  value=set_1_name,
+                  options=sorted(select_options),
+                  sizing_mode="stretch_width", margin=[10, 0])
+  select_1.on_change('value', change_set_1)
+  select_1.styles = {'padding': '0 25px'}
+  
+  def change_set_2(attr, old, new):    
+    set_1_name = select_1.value
+    common_gene_list = getCommonGenesList(new, set_1_name)
+    expresions_set_2_data = getSortedCollectionMetadata(client, common_gene_list, new)
+    
+    source.data['set_2_y'] = [d['x'] for d in expresions_set_2_data]
+    source.data['set_2_y'] = [d['y'] for d in expresions_set_2_data]
+
+  select_2 = Select(title="Conjunto de datos a visualizar:",
+                  value=set_2_name,
+                  options=sorted(select_options),
+                  sizing_mode="stretch_width", margin=[10, 0])
+  select_2.on_change('value', change_set_2)
+  select_2.styles = {'padding': '0 25px'}
+  
+  # ---- Plots ---- #
   TOOLTIPS = """
     <div
       class="figure-tootip"
@@ -391,18 +446,35 @@ def searcher(doc):
       <p>@{summary}</p>
     </div>
   """
-  summaries_plot = figure(tooltips=TOOLTIPS, match_aspect=True, sizing_mode='scale_both',
-                tools="crosshair,box_select,pan,reset,wheel_zoom,lasso_select",
-                title='Representación semántica de los genes')
+  
+  #  -- Plots figures & callbacks
+  #     -- Summaries
+  summaries_plot = figure(tooltips=TOOLTIPS,
+                          match_aspect=True,
+                          tools="crosshair,box_select,pan,reset,wheel_zoom,lasso_select",
+                          title='Representación semántica de los genes',
+                          sizing_mode='scale_width')
   summaries_plot.scatter(x='summary_x', y='summary_y', source=source, marker="circle", radius=0.02, selection_color="red", nonselection_fill_alpha=0.01)
-  summaries_plot.styles = {'padding': '0 25px'}
 
+  #     -- Gene expresions
+  set_1_plot = figure(name='expresions_plot', match_aspect=True,
+      tools="crosshair,box_select,pan,reset,wheel_zoom",
+      title='Representación de las expresiones genéticas', tooltips=TOOLTIPS)
+  set_1_plot.scatter(x='set_1_x', y='set_1_y', source=source, marker="circle",
+                          radius=0.02, selection_color="red",  nonselection_fill_alpha=0.01)
+  
+  set_2_plot = figure(name='expresions_plot', match_aspect=True,
+      tools="crosshair,box_select,pan,reset,wheel_zoom",
+      title='Representación de las expresiones genéticas', tooltips=TOOLTIPS)
+  set_2_plot.scatter(x='set_2_x', y='set_2_y', source=source, marker="circle",
+                       radius=0.02, selection_color="red",  nonselection_fill_alpha=0.01)
+  
   def search_query(attr, old, new):
     client = chromadb.PersistentClient(path="./db/local_client")
     collection = client.get_collection("gen_summaries")
     results = collection.query(
       query_texts=new,
-      n_results=50)
+      n_results=200)
     
     results['metadatas'][0][0]
     
@@ -412,6 +484,7 @@ def searcher(doc):
     for result in results['metadatas'][0]:
       result_group = column(sizing_mode="stretch_width")
       
+      # Add results to Div (gene list view)
       header = Div(text=f"<h2>{result['symbol']}</h2>")
       header.styles = {'padding': '0 25px'}
       result_group.children.append(header)   
@@ -422,9 +495,16 @@ def searcher(doc):
       results_widgets.append(result_group)
     result_list.children = list(results_widgets)
     
-    symbols = list(map(lambda r: r['symbol'],results['metadatas'][0]))
-    indices = list(map(lambda sym: source.data['symbol'].index(sym), symbols))
-    source.selected.indices = indices    
+    symbols = list(map(lambda r: r['symbol'], results['metadatas'][0]))
+    indices = []
+    for sym in symbols:
+      try:
+          indice = source.data['symbol'].index(sym)
+          indices.append(indice)
+      except ValueError:
+          pass  # Ignorar símbolos que no están en source.data['symbol']
+    source.selected.indices = indices
+    
   search_bar = TextInput(title="Conjunto de datos a visualizar:", placeholder='Introduce la descripción del gen...',
                 sizing_mode="stretch_width", margin=[10, 0])
   search_bar.on_change('value', search_query)
@@ -436,7 +516,10 @@ def searcher(doc):
   result_list = column(sizing_mode="stretch_width")
 
 
-  doc.add_root(column([search_bar, row(summaries_plot, sizing_mode='stretch_both', min_height=500), h1, result_list], sizing_mode="scale_width"))
+  plots = gridplot([[summaries_plot, column([select_1, set_1_plot], sizing_mode='scale_both'), column([select_2, set_2_plot], sizing_mode='scale_width')]], sizing_mode='scale_both')
+  plots.styles = {'padding': '0 25px'}
+  
+  doc.add_root(column([search_bar, row(plots, sizing_mode='scale_both', min_height=700), h1, result_list], sizing_mode="scale_width"))
   doc.theme = Theme(filename="theme.yaml")
 
 @app.route('/searcher', methods=['GET'])
