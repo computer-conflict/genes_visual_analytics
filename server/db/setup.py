@@ -12,6 +12,7 @@ import chromadb, time
 
 import umap.umap_ as umap
 from joblib import Parallel, delayed
+from sentence_transformers import SentenceTransformer
 
 def create_summary_collection(client, collection_name, df_path):
   dataset_path = f"./db/datasets/{df_path}"
@@ -19,14 +20,19 @@ def create_summary_collection(client, collection_name, df_path):
   
   collection = client.get_or_create_collection(collection_name)
   print(f"Creating {collection_name} embeddings.")
-  start_time = time.time()
-  collection.add(
-      documents= list(df["summary"]),
-      metadatas= df[['symbol', 'summary']].to_dict(orient='records'),
-      ids=list(df["symbol"]))
-  end_time = time.time()
-  print(f"Done: {end_time - start_time} s")
-  embeddings = collection.get(ids=list(df["symbol"]), include=['embeddings'])['embeddings']
+  model = SentenceTransformer("all-MiniLM-L6-v2")
+  gene_summaries = df['summary'].tolist()
+  
+  embeddings = model.encode(gene_summaries)
+  
+  #start_time = time.time()
+  #collection.add(
+  #    documents= list(df["summary"]),
+  #    metadatas= df[['symbol', 'summary']].to_dict(orient='records'),
+  #    ids=list(df["symbol"]))
+  #end_time = time.time()
+  #print(f"Done: {end_time - start_time} s")
+  #embeddings = collection.get(ids=list(df["symbol"]), include=['embeddings', 'metadatas'])['embeddings']
   
 
   fit = umap.UMAP()
@@ -41,8 +47,9 @@ def create_summary_collection(client, collection_name, df_path):
 
   print(f"Updating {collection_name}.")
   start_time = time.time()
-  collection.update(
+  collection.add(
     ids=list(df["symbol"]),
+    documents= list(df["summary"]),
     metadatas= df[['symbol', 'summary', 'x', 'y']].to_dict(orient='records'))
   end_time = time.time()
   print(f"Done: {end_time - start_time} s")
@@ -128,13 +135,14 @@ def chroma_setup():
     client.get_collection('gen_summaries')
   except:
     create_summary_collection(client, 'gen_summaries', 'genes_human_58347_used_in_sciPlex2_brief_info_by_mygene_package.csv')
-        
+      
+      
+  #client.delete_collection('KICH')
   samples = ['ACC', 'BRCA', 'CHOL', 'COADREAD', 'ESCA', 'HNSC', 'KIRC', 'LAML', 'LIHC',
             'LUSC', 'OV1', 'PCPG', 'READ', 'SKCM', 'TGCT', 'THYM', 'UCS', 'BLCA', 'CESC',
             'COAD', 'DLBC', 'GBM', 'KICH', 'KIRP', 'LGG', 'LUAD', 'MESO', 'PAAD', 'PRAD', 'SARC', 'STAD', 'THCA', 'UCEC', 'UVM']
-  
-  samples = ['ACC', 'BRCA', 'CHOL', 'COADREAD', 'ESCA', 'HNSC', 'KIRC', 'LAML', 'LIHC']
 
+    
   print(f"Loading database...")
   start_time = time.time()
   Parallel(n_jobs=4, backend='threading')(delayed(load_sample_set)(client, sample) for sample in samples)

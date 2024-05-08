@@ -2,6 +2,7 @@ from flask import Flask, request
 
 import torch
 from transformers import pipeline
+from nlpcloud import Client
 
 app = Flask(__name__)
 
@@ -46,7 +47,7 @@ def summarize_batch():
     summarizer = pipeline("summarization", "facebook/bart-large-cnn")
     
     if request.method == 'POST':
-      gene_summaries = request.form['summary_text']
+      resumenes = request.form['summary_text']
       
       def summarize_article(articles):
         full_article = ''.join(articles)
@@ -63,6 +64,75 @@ def summarize_batch():
       
   finally:    
     return response
+
+def chunk_list(lst, chunk_size):
+    for i in range(0, len(lst), chunk_size):
+        yield lst[i:i + chunk_size]
+        
+def summarize_text(text, summarizer):
+    summary = summarizer(f"{text}", max_new_tokens=700, num_return_sequences=1)
+    print("Chunk resumido\n")
+    print(summary)
+    print("           '    ")
+    print("         o      ")
+    print("       0        ")
+    print("        o       ")
+    print("        .       ")
+    print("_-_-_----_---_--")
+
+    return summary
+
+
+@app.route("/summarize_gpt", methods=['POST', 'GET'])
+def summarize_gpt():
+  # Cargar el tokenizador y el modelo GPT-2
+  summarizer = pipeline("summarization")
+
+  request_summary = ''
+  if request.method == 'POST':
+    gene_summaries = request.form['summary_text'].split('. ')
+    max_tokens_per_chunk = 500
+    
+    # Dividir los resumenes en trozos procesables
+    chunks = list(chunk_list(gene_summaries, max_tokens_per_chunk))
+    
+    summarized_chunks = []
+    for chunk in chunks:
+      # Procesamiento de cada trozo
+      summarized_chunk = summarize_text(chunk, summarizer)
+      summarized_chunks.append(summarized_chunk)
+      
+    # Concatenar los resúmenes en más conjuntos de tamaño máximo
+    if len(summarized_chunks) > 1:
+      combined_summary = ". ".join(summarized_chunks)
+      combined_chunks = list(chunk_list(combined_summary, max_tokens_per_chunk))
+      request_summary = summarize_text(combined_chunks)
+    else:
+      request_summary = ". ".join(summarized_chunks)
+      
+  return request_summary
+
+@app.route("/ask_gpt", methods=['POST'])
+def ask_gpt():
+  # Cargar el tokenizador y el modelo GPT-2
+  model = pipeline('text-generation', model='gpt2')
+  
+  question = request.form['question']
+  
+  answer = model(f"{question}", num_return_sequences=5)
+      
+  return answer
+
+
+@app.route("/summarize", methods=['POST'])
+def summarize():
+  descriptions = request.form['gen_descriptions']
+  print(descriptions)
+  
+  client = Client("bart-large-cnn ", "578651d6ebe92ce54c5e611856fd409a920d27cc", gpu=True, asynchronous=True)
+  summary = client.summarization(descriptions)
+      
+  return summary['summary_text']
 
 
 @app.route("/ping")
