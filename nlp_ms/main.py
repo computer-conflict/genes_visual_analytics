@@ -126,7 +126,7 @@ def ask_gpt():
 
 @app.route("/summarize", methods=['POST'])
 def summarize():
-  descriptions = request.form['gen_descriptions']
+  descriptions = request.form['gene_descriptions'].split('.__.')
   print(descriptions)
   
   client = Client("bart-large-cnn ", "578651d6ebe92ce54c5e611856fd409a920d27cc", gpu=True, asynchronous=True)

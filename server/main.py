@@ -4,13 +4,13 @@ from threading import Thread
 from flask import Flask, render_template
 from tornado.ioloop import IOLoop
 
-from bokeh.embed import server_document
-from bokeh.layouts import column, row, gridplot
-from bokeh.models import ColumnDataSource, Paragraph, Select, Div, TextInput
-from bokeh.plotting import figure
-from bokeh.server.server import Server
-from bokeh.themes import Theme
-from bokeh.events import SelectionGeometry, MouseMove
+from bokeh.embed import server_document # type: ignore
+from bokeh.layouts import column, row, gridplot # type: ignore
+from bokeh.models import Button, ColumnDataSource, Div, Paragraph, Select, TextInput, Toggle # type: ignore
+from bokeh.plotting import figure # type: ignore
+from bokeh.server.server import Server # type: ignore
+from bokeh.themes import Theme # type: ignore
+from bokeh.events import SelectionGeometry, MouseMove # type: ignore
 
 # Imports for Chromadb
 from db.setup import chroma_setup
@@ -21,8 +21,8 @@ import chromadb
 
 import numpy as np
 import pandas as pd
-import requests
-import math
+import requests, time
+from functools import partial
 
 app = Flask(__name__)
 
@@ -52,8 +52,8 @@ def getSortedCollectionMetadata(client, gene_list, collection_name):
 def bkapp(doc):
   client = chromadb.PersistentClient(path="./db/local_client")
   
-  set_1_name = 'KICH_5'
-  set_2_name = 'KIRP_5'
+  set_1_name = 'KICH'
+  set_2_name = 'KIRP'
   
   common_gene_list = getCommonGenesList(set_1_name, set_2_name)
 
@@ -260,126 +260,12 @@ def bkapp(doc):
   doc.add_root(column([row(plots, sizing_mode='scale_both', min_height=700), gpt_group, gene_group], sizing_mode="scale_width"))
   doc.theme = Theme(filename="theme.yaml")
 
-def brushing(doc):
-  set_name = 'KICH'
-  compare_set_name = 'KIRP'
-  client = chromadb.PersistentClient(path="./db/local_client")
-
-  # Creamos la source
-  df = getDataframe(set_name, compare_set_name)
-
-  summaries_collection = client.get_collection("gen_summaries")
-  summaries_metadatas = summaries_collection.get(ids=list(df["symbol"]), include=["metadatas"])["metadatas"]
-  
-  set_collection = client.get_collection(set_name)
-  set_metadatas = set_collection.get(ids=list(df["symbol"]), include=["metadatas"])["metadatas"]
-  
-  compare_set_collection = client.get_collection(compare_set_name)
-  compare_metadatas = compare_set_collection.get(ids=list(df["symbol"]), include=["metadatas"])["metadatas"]
-
-  data = {
-    'indexes': np.arange(0,len(df)),
-    'symbol': [d['symbol'] for d in summaries_metadatas],
-    'summary': [d['summary'] for d in summaries_metadatas],
-    'summary_x': [d['x'] for d in summaries_metadatas],
-    'summary_y': [d['y'] for d in summaries_metadatas],
-    'samples_x': [d['x'] for d in set_metadatas],
-    'samples_y': [d['y'] for d in set_metadatas],
-    'compare_x': [d['x'] for d in compare_metadatas],
-    'compare_y': [d['y'] for d in compare_metadatas]
-  }
-  source = ColumnDataSource(data) 
-
-
-  # ----  Datasets Selector ---- #
-  def change_set(attr, old, new):
-    compare_set_name = compare_select.value
-    df = getDataframe(new, compare_set_name)
-    set_collection = client.get_collection(new)
-    set_metadatas = set_collection.get(ids=list(df["symbol"]), include=["metadatas"])["metadatas"]
-    source.data['samples_x'] = [d['x'] for d in set_metadatas]
-    source.data['samples_y'] = [d['y'] for d in set_metadatas]
-  select_options = ['ACC', 'BRCA', 'CHOL', 'COADREAD', 'ESCA', 'HNSC', 'KIRC', 'LAML', 'LIHC',
-            'LUSC', 'OV1', 'PCPG', 'READ', 'SKCM', 'TGCT', 'THYM', 'UCS', 'BLCA', 'CESC',
-            'COAD', 'DLBC', 'GBM', 'KICH', 'KIRP', 'LGG', 'LUAD', 'MESO', 'PAAD', 'PRAD', 'SARC', 'STAD', 'THCA', 'UCEC', 'UVM']
-  select = Select(title="Conjunto de datos a visualizar:", value=set_name,
-                  options=select_options,
-                  sizing_mode="stretch_width", margin=[10, 0])
-  select.on_change('value', change_set)
-  select.styles = {'padding': '0 25px'}
-  
-  def change_compare_set(attr, old, new):
-    set_name = select.value
-    df = getDataframe(set_name, new)
-    
-    compare_set_collection = client.get_collection(new)
-    compare_metadatas = compare_set_collection.get(ids=list(df["symbol"]), include=["metadatas"])["metadatas"]
-    source.data['compare_x'] = [d['x'] for d in compare_metadatas]
-    source.data['compare_y'] = [d['y'] for d in compare_metadatas]
-  compare_select = Select(title="Conjunto de datos a comparar:", value=compare_set_name,
-                  options=select_options,
-                  sizing_mode="stretch_width", margin=[10, 0])
-  compare_select.on_change('value', change_compare_set)
-  compare_select.styles = {'padding': '0 25px'}
-  
-
-  # ---- Plots ---- #
-  #  -- Plots figures & callbacks
-  #     -- Summaries
-  summaries_plot = figure(match_aspect=True, tools="crosshair,wheel_zoom",
-      title='Representación semántica de los genes', sizing_mode='scale_width')
-  source_sel = ColumnDataSource({'x':[],'y':[]})
-  
-  summaries_plot.scatter(x='summary_x', y='summary_y', source=source, marker="circle", radius=0.02, selection_color="red", nonselection_fill_alpha=0.01)
-  
-  #     -- Gene expresions
-  expresions_plot = figure(name='expresions_plot', match_aspect=True, tools="crosshair,wheel_zoom",
-      title='Representación de las expresiones genéticas')
-  expresions_plot.scatter(x='samples_x', y='samples_y',
-                          source=source, marker="circle", radius=0.02, selection_color="red",  nonselection_fill_alpha=0.01)
-  
-  compare_plot = figure(name='expresions_plot', match_aspect=True, tools="crosshair,wheel_zoom",
-      title='Representación de las expresiones genéticas')
-  compare_plot.scatter(x='compare_x', y='compare_y',
-                          source=source, marker="circle", radius=0.02, selection_color="red",  nonselection_fill_alpha=0.01)
-  
-  
-  def on_mouse_move(e):
-    # OBTENER PUNTOS EN UN ENTORNO DEL RATÓN d(mousex,mousey) < dmax
-    x = e.x
-    xs= e.sx
-    y = e.y
-    ys= e.sy
-    
-    # DISTANCIAS d(mousex,mousey)
-    #dist = xs.map(lambda d,i: math.pow(xs[i]-x,2)+math.pow(ys[i]-y,2))
-    #
-    ## INDICES SELECCIONADOS d(mousex,mousey) < dmax
-    #idx = dist.map(lambda d,i: i if d<3 else -1).filter(lambda d: d > 0)
-    #
-    ## ÍNDICE DEL PUNTO MÁS CERCANO AL RATÓN
-    #bmu = dist.index(min(dist));
-    print(f"x: {x}, y: {y}")
-    #source_sel.data['x'] = [x]
-    #source_sel.data['y'] = [y]
-        
-  summaries_plot.on_event(MouseMove, on_mouse_move)
-  expresions_plot.on_event(MouseMove, on_mouse_move)
-  compare_plot.on_event(MouseMove, on_mouse_move)
-
-  #  -- Visualization
-  plots = gridplot([[summaries_plot], [gridplot([[expresions_plot, compare_plot]], sizing_mode='scale_both')]], sizing_mode='scale_both')
-  plots.styles = {'padding': '0 25px'}
-
-  doc.add_root(column([select, compare_select, row(plots, sizing_mode='scale_both', min_height=700)], sizing_mode="scale_width"))
-  doc.theme = Theme(filename="theme.yaml")
-
 def searcher(doc):
-  # ---- Plots ---- #
+  # region Plots
   client = chromadb.PersistentClient(path="./db/local_client")
   
-  set_1_name = 'KICH_5'
-  set_2_name = 'KIRP_5'
+  set_1_name = 'KICH'
+  set_2_name = 'KIRP'
   
   common_gene_list = getCommonGenesList(set_1_name, set_2_name)
 
@@ -400,8 +286,74 @@ def searcher(doc):
   }
   source = ColumnDataSource(data) 
 
+  TOOLTIPS = """
+    <div
+      class="figure-tootip"
+      style="overflow: none; width: 300px" 
+    >
+      <p><strong>Nombre:</strong>@{symbol}</p>
+      <strong>Descripción</strong>
+      <p>@{summary}</p>
+    </div>
+  """
+  #  -- Plots figures & callbacks
+  summaries_plot = figure(tooltips=TOOLTIPS,
+                          match_aspect=True,
+                          tools="crosshair,box_select,pan,reset,wheel_zoom,lasso_select",
+                          title='Representación semántica de los genes',
+                          sizing_mode='scale_width')
+  summaries_plot.scatter(x='summary_x', y='summary_y', source=source, marker="circle", radius=0.02, selection_color="red", nonselection_fill_alpha=0.01)
+  
+  set_1_plot = figure(name='expresions_plot', match_aspect=True,
+      tools="crosshair,box_select,pan,reset,wheel_zoom",
+      title='Representación de las expresiones genéticas', tooltips=TOOLTIPS)
+  set_1_plot.scatter(x='set_1_x', y='set_1_y', source=source, marker="circle",
+                          radius=0.02, selection_color="red",  nonselection_fill_alpha=0.01)
+  
+  set_2_plot = figure(name='expresions_plot', match_aspect=True,
+      tools="crosshair,box_select,pan,reset,wheel_zoom",
+      title='Representación de las expresiones genéticas', tooltips=TOOLTIPS)
+  set_2_plot.scatter(x='set_2_x', y='set_2_y', source=source, marker="circle",
+                       radius=0.02, selection_color="red",  nonselection_fill_alpha=0.01)
+  #endregion
+  
+  #region Plot Actions
+  def filter_points_near_point(x_ref, y_ref, x_list, y_list, max_distance):
+    index_list = []
+    for i, (x, y) in enumerate(zip(x_list, y_list)):
+      distance = ((x - x_ref)**2 + (y - y_ref)**2)**0.5
+      if distance < max_distance:
+          index_list.append(i)
+          
+    return index_list
+          
+  def brushing(e, plot_name):
+    if not brusshing_toggle.active: return
 
-  # ----  Datasets Selector ---- #
+    x = e.x
+    y = e.y
+    
+    x_list = source.data[f"{plot_name}_x"]
+    y_list = source.data[f"{plot_name}_y"]
+    
+    start_time = time.time()
+    index = filter_points_near_point(x, y, x_list, y_list, 0.33)
+    end_time = time.time()
+    source.selected.indices = index
+    print("Chunk resumido\n")
+    print("           '    ")
+    print("         o      ")
+    print(f"Tiempo indices: {end_time - start_time} s")
+    print("       0        ")
+    print("        o       ")  
+    print(f"x: {x}, y: {y}")
+        
+  summaries_plot.on_event(MouseMove, partial(brushing, plot_name='summary'))
+  set_1_plot.on_event(MouseMove, partial(brushing, plot_name='set_1'))
+  set_2_plot.on_event(MouseMove, partial(brushing, plot_name='set_2'))
+  #endregion
+  
+  #region Plot Widgets
   select_options = ['ACC', 'BLCA', 'BRCA', 'CESC', 'CHOL', 'COAD', 'COADREAD',
                   'DLBC', 'ESCA', 'GBM', 'HNSC', 'KICH', 'KICH_5', 'KIRC', 'KIRP', 'KIRP_5', 'LAML',
                   'LGG', 'LIHC', 'LUAD', 'LUSC', 'MESO', 'OV1', 'PAAD', 'PCPG',
@@ -418,8 +370,8 @@ def searcher(doc):
                   options=sorted(select_options),
                   sizing_mode="stretch_width", margin=[10, 0])
   select_1.on_change('value', change_set_1)
-  select_1.styles = {'padding': '0 25px'}
-  
+  select_1.styles = {'padding': '0 20px'}
+
   def change_set_2(attr, old, new):    
     set_1_name = select_1.value
     common_gene_list = getCommonGenesList(new, set_1_name)
@@ -427,48 +379,35 @@ def searcher(doc):
     
     source.data['set_2_y'] = [d['x'] for d in expresions_set_2_data]
     source.data['set_2_y'] = [d['y'] for d in expresions_set_2_data]
-
   select_2 = Select(title="Conjunto de datos a visualizar:",
                   value=set_2_name,
                   options=sorted(select_options),
                   sizing_mode="stretch_width", margin=[10, 0])
   select_2.on_change('value', change_set_2)
-  select_2.styles = {'padding': '0 25px'}
-  
-  # ---- Plots ---- #
-  TOOLTIPS = """
-    <div
-      class="figure-tootip"
-      style="overflow: none; width: 300px" 
-    >
-      <p><strong>Nombre:</strong>@{symbol}</p>
-      <strong>Descripción</strong>
-      <p>@{summary}</p>
-    </div>
-  """
-  
-  #  -- Plots figures & callbacks
-  #     -- Summaries
-  summaries_plot = figure(tooltips=TOOLTIPS,
-                          match_aspect=True,
-                          tools="crosshair,box_select,pan,reset,wheel_zoom,lasso_select",
-                          title='Representación semántica de los genes',
-                          sizing_mode='scale_width')
-  summaries_plot.scatter(x='summary_x', y='summary_y', source=source, marker="circle", radius=0.02, selection_color="red", nonselection_fill_alpha=0.01)
+  select_2.styles = {'padding': '0 20px'}
 
-  #     -- Gene expresions
-  set_1_plot = figure(name='expresions_plot', match_aspect=True,
-      tools="crosshair,box_select,pan,reset,wheel_zoom",
-      title='Representación de las expresiones genéticas', tooltips=TOOLTIPS)
-  set_1_plot.scatter(x='set_1_x', y='set_1_y', source=source, marker="circle",
-                          radius=0.02, selection_color="red",  nonselection_fill_alpha=0.01)
+  def summarize_selection():
+    indices = source.selected.indices    
+    gene_descriptions = ('.__.').join(map(str, np.take(source.data['summary'], indices).tolist()))
+          
+    response = requests.post('http://127.0.0.1:5000/summarize',
+             data={
+               'gene_descriptions': gene_descriptions
+             })
+    summary_div.text = '<h2>Descripciones resumidas</h2>'
+    if (response.status_code == 200):
+      summary_div.text = '\
+        <h2>Descripciones resumidas</h2> \
+        <p>${response.text}</p>'
+  sum_btn = Button(label="Resumir selección", sizing_mode="stretch_width", margin=[10, 0])
+  sum_btn.on_click(summarize_selection)
+  sum_btn.styles = {'margin-top': '20px'}
   
-  set_2_plot = figure(name='expresions_plot', match_aspect=True,
-      tools="crosshair,box_select,pan,reset,wheel_zoom",
-      title='Representación de las expresiones genéticas', tooltips=TOOLTIPS)
-  set_2_plot.scatter(x='set_2_x', y='set_2_y', source=source, marker="circle",
-                       radius=0.02, selection_color="red",  nonselection_fill_alpha=0.01)
+  brusshing_toggle = Toggle(label="Brushing", sizing_mode="stretch_width", margin=[10, 50])
+  brusshing_toggle.styles = {'margin-top': '20px'}
+  #endregion
   
+  #region SearchBar
   def search_query(attr, old, new):
     client = chromadb.PersistentClient(path="./db/local_client")
     collection = client.get_collection("gen_summaries")
@@ -504,24 +443,26 @@ def searcher(doc):
       except ValueError:
           pass  # Ignorar símbolos que no están en source.data['symbol']
     source.selected.indices = indices
-    
-  search_bar = TextInput(title="Conjunto de datos a visualizar:", placeholder='Introduce la descripción del gen...',
-                sizing_mode="stretch_width", margin=[10, 0])
+  search_bar = TextInput(title="Conjunto de datos a visualizar:",
+                        placeholder='Introduce la descripción del gen...',
+                        sizing_mode="stretch_width", margin=[10, 0])
   search_bar.on_change('value', search_query)
   search_bar.styles = {'padding': '0 25px'}
+  #endregion
   
-  #  -- Results display
+  #region Display
+  summary_div = Div(text="")
   h1 = Div(text="<h1></h1>")
   h1.styles = {'padding': '0 25px'}
   result_list = column(sizing_mode="stretch_width")
 
-
-  plots = gridplot([[summaries_plot, column([select_1, set_1_plot], sizing_mode='scale_both'), column([select_2, set_2_plot], sizing_mode='scale_width')]], sizing_mode='scale_both')
+  plots = gridplot([[row(sum_btn, brusshing_toggle), select_1, select_2], [summaries_plot, set_1_plot, set_2_plot]], sizing_mode='scale_width')
   plots.styles = {'padding': '0 25px'}
   
   doc.add_root(column([search_bar, row(plots, sizing_mode='scale_both', min_height=700), h1, result_list], sizing_mode="scale_width"))
   doc.theme = Theme(filename="theme.yaml")
-
+  #endregion
+  
 @app.route('/searcher', methods=['GET'])
 def searcher_page():
   script = server_document('http://localhost:5006/searcher')
@@ -532,15 +473,10 @@ def bkapp_page():
   script = server_document('http://localhost:5006/bkapp')
   return render_template("index.html", script=script, template="Flask")
 
-@app.route('/brushing', methods=['GET'])
-def brushing_page():
-  script = server_document('http://localhost:5006/brushing')
-  return render_template("brushing.html", script=script, template="Flask")
-
 def bk_worker():
     # Can't pass num_procs > 1 in this configuration. If you need to run multiple
     # processes, see e.g. flask_gunicorn_embed.py
-    server = Server({'/bkapp': bkapp, '/searcher': searcher, '/brushing': brushing}, io_loop=IOLoop(), allow_websocket_origin=["localhost:8000"])
+    server = Server({'/bkapp': bkapp, '/searcher': searcher}, io_loop=IOLoop(), allow_websocket_origin=["localhost:8000"])
     server.start()
     server.io_loop.start()
 
