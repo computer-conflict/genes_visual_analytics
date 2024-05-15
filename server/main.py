@@ -28,7 +28,7 @@ from functools import partial
 
 app = Flask(__name__)
 
-def getCommonGenesList(df_name_1, df_name_2):
+def get_common_gene_list(df_name_1, df_name_2):
   desc_dataset_path = './db/datasets/genes_human_58347_used_in_sciPlex2_brief_info_by_mygene_package.csv'
   desc_df = pd.read_csv(desc_dataset_path, usecols=["symbol", "summary"]).dropna().drop_duplicates(subset=['symbol'])
 
@@ -60,224 +60,13 @@ def get_color_map(df_name):
   return CategoricalColorMapper(factors=categories, palette=palette)
 
 def bkapp(doc):
-  client = chromadb.PersistentClient(path="./db/local_client")
-  
-  set_1_name = 'KICH'
-  set_2_name = 'KIRP'
-  
-  common_gene_list = getCommonGenesList(set_1_name, set_2_name)
-
-  summaries_metadatas = get_sorted_collection_metadata(client, common_gene_list, 'gen_summaries')
-  expresions_set_1_data = get_sorted_collection_metadata(client, common_gene_list, set_1_name)
-  expresions_set_2_data = get_sorted_collection_metadata(client, common_gene_list, set_2_name)
-  
-  data = {
-    'indexes': np.arange(0, len(common_gene_list)),
-    'symbol': [d['symbol'] for d in summaries_metadatas],
-    'summary': [d['summary'] for d in summaries_metadatas],
-    'summary_x': [d['x'] for d in summaries_metadatas],
-    'summary_y': [d['y'] for d in summaries_metadatas],
-    'set_1_x': [d['x'] for d in expresions_set_1_data],
-    'set_1_y': [d['y'] for d in expresions_set_1_data],
-    'set_2_x': [d['x'] for d in expresions_set_2_data],
-    'set_2_y': [d['y'] for d in expresions_set_2_data]
-  }
-  source = ColumnDataSource(data) 
-
-
-  # ----  Datasets Selector ---- #
-  select_options = ['ACC', 'BLCA', 'BRCA', 'CESC', 'CHOL', 'COAD', 'COADREAD',
-                  'DLBC', 'ESCA', 'GBM', 'HNSC', 'KICH', 'KICH_5', 'KIRC', 'KIRP', 'KIRP_5', 'LAML',
-                  'LGG', 'LIHC', 'LUAD', 'LUSC', 'MESO', 'OV1', 'PAAD', 'PCPG',
-                  'PRAD', 'READ', 'SARC', 'SKCM', 'STAD', 'TGCT', 'THCA', 'THYM', 'UCEC', 'UCS', 'UVM']
-  def change_set_1(attr, old, new):
-    set_2_name = select_2.value
-    common_gene_list = getCommonGenesList(new, set_2_name)
-    expresions_set_1_data = get_sorted_collection_metadata(client, common_gene_list, new)
-    
-    source.data['set_1_y'] = [d['x'] for d in expresions_set_1_data]
-    source.data['set_1_y'] = [d['y'] for d in expresions_set_1_data]
-  select_1 = Select(title="Conjunto de datos a visualizar:",
-                  value=set_1_name,
-                  options=sorted(select_options),
-                  sizing_mode="stretch_width", margin=[10, 0])
-  select_1.on_change('value', change_set_1)
-  select_1.styles = {'padding': '0 25px'}
-  
-  def change_set_2(attr, old, new):    
-    set_1_name = select_1.value
-    common_gene_list = getCommonGenesList(new, set_1_name)
-    expresions_set_2_data = get_sorted_collection_metadata(client, common_gene_list, new)
-    
-    source.data['set_2_y'] = [d['x'] for d in expresions_set_2_data]
-    source.data['set_2_y'] = [d['y'] for d in expresions_set_2_data]
-
-  select_2 = Select(title="Conjunto de datos a visualizar:",
-                  value=set_2_name,
-                  options=sorted(select_options),
-                  sizing_mode="stretch_width", margin=[10, 0])
-  select_2.on_change('value', change_set_2)
-  select_2.styles = {'padding': '0 25px'}
-
-
-  # ---- Summary output Bart-cnn ---- #
-  led_h2 = Paragraph(text='Resumen de la selección (led-base-book-summary)')
-  led_h2.css_classes = ["h2"]
-  led_h2.styles = {
-    'padding': '5px 0',
-    'display': 'block !important',
-    'font-size': '1.17em !important',
-    'font-weight': 'bold !important',
-    'text-transform': 'uppercase !important'
-  }
-  led_p = Paragraph(text='The gene selection could not be summarize')
-  led_p.styles = {
-    'color': '#5C5C5C !important',
-    'font-size': '1.2rem !important'
-  }
-  led_group = column(row(led_h2, margin=[20, 0]), led_p)
-  led_group.styles = {'padding': '0 25px'}
-  
-  bart_h2 = Paragraph(text='Resumen de la selección  (Bart-large-cnn)')
-  bart_h2.css_classes = ["h2"]
-  bart_h2.styles = {
-    'padding': '5px 0',
-    'display': 'block !important',
-    'font-size': '1.17em !important',
-    'font-weight': 'bold !important',
-    'text-transform': 'uppercase !important'
-  }
-  bart_p = Paragraph(text='The gene selection could not be summarize')
-  bart_p.styles = {
-    'color': '#5C5C5C !important',
-    'font-size': '1.2rem !important'
-  }
-  bart_group = column(row(bart_h2, margin=[20, 0]), bart_p)
-  bart_group.styles = {'padding': '0 25px'}
-  
-  gpt_header = Div(text="", width=200, height=50)
-  gpt_p = Paragraph(text='The gene selection could not be summarize')
-  gpt_p.styles = {
-    'color': '#5C5C5C !important',
-    'font-size': '1.2rem !important'
-  }
-  gpt_group = column(gpt_header, gpt_p)
-  gpt_group.styles = {'padding': '0 25px'}
-  
-  gene_h2 = Div(text="<h2>Genes seleccionados</h2>", width=200, height=50)
-  selected_gene_list = []
-  gene_display = column()
-  gene_display.styles = {'display': 'flex', 'flex-wrap': 'wrap', 'flex-direction': 'row'}
-  gene_group = column(gene_h2, gene_display)
-  gene_group.styles = {'padding': '0 25px'}
-  
-
-  # ---- Plots ---- #
-  TOOLTIPS = """
-    <div
-      class="figure-tootip"
-      style="overflow: none; width: 300px" 
-    >
-      <p><strong>Nombre:</strong>@{symbol}</p>
-      <strong>Descripción</strong>
-      <p>@{summary}</p>
-    </div>
-  """
-  
-  #  -- Plots figures & callbacks
-  #     -- Summaries
-  summaries_plot = figure(tooltips=TOOLTIPS,
-                          match_aspect=True,
-                          tools="crosshair,box_select,pan,reset,wheel_zoom,lasso_select",
-                          title='Representación semántica de los genes',
-                          sizing_mode='scale_width')
-  summaries_plot.scatter(x='summary_x', y='summary_y', source=source, marker="circle", radius=0.02, selection_color="red", nonselection_fill_alpha=0.01)
-
-  #     -- Gene expresions
-  set_1_plot = figure(name='expresions_plot', match_aspect=True,
-      tools="crosshair,box_select,pan,reset,wheel_zoom",
-      title='Representación de las expresiones genéticas', tooltips=TOOLTIPS)
-  set_1_plot.scatter(x='set_1_x', y='set_1_y', source=source, marker="circle",
-                          radius=0.02, selection_color="red",  nonselection_fill_alpha=0.01)
-  
-  set_2_plot = figure(name='expresions_plot', match_aspect=True,
-      tools="crosshair,box_select,pan,reset,wheel_zoom",
-      title='Representación de las expresiones genéticas', tooltips=TOOLTIPS)
-  set_2_plot.scatter(x='set_2_x', y='set_2_y', source=source, marker="circle",
-                       radius=0.02, selection_color="red",  nonselection_fill_alpha=0.01)
-  
-  def callback_handler(event):    
-    gene_name = event.item.text
-    print(f"Se hizo clic en el enlace para el gen {gene_name}")
-  
-  def select_group(event):
-    if event.final is True:
-      indices = source.selected.indices
-      
-      gen_descriptions = '.'.join(map(str, np.take(source.data['summary'], indices).tolist()))
-            
-      gpt_response = requests.post('http://127.0.0.1:5000/summarize',
-               data={
-                 'gen_descriptions': gen_descriptions
-               })
-      gpt_header.text = '<h2>Descripciones resumidas (GTP2)</h2>'
-      selection_summary = 'The gene selection could not be summarize'
-      if (gpt_response.status_code == 200):
-        selection_summary = gpt_response.text
-      gpt_p.text = selection_summary
-          
-            ## bart-large-cnn summarization
-      #if(True):
-      #  bart_response = requests.post('http://127.0.0.1:5000/summarize_bart',
-      #                   data={
-      #                     'summary_text': list(source.data['summary'][indices])
-      #                   })
-      #  bart_h2.text = 'Resumen de la selección (Bart-large-cnn)'
-      #  selection_summary = 'The gene selection could not be summarize'
-      #  if (bart_response.status_code == 200):
-      #    selection_summary = bart_response.text
-      #  bart_p.text = selection_summary
-      #
-      ## led-base-book-summary summarization
-      #if(True):
-      #  led_response = requests.post('http://127.0.0.1:5000/summarize_led',
-      #           data={
-      #             'summary_text': gen_descriptions
-      #           })
-      #  led_h2.text = 'Resumen de la selección (led-base-book-summary)'
-      #  selection_summary = 'The gene selection could not be summarize'
-      #  if (led_response.status_code == 200):
-      #    selection_summary = led_response.text
-      #  led_p.text = selection_summary
-      #        
-      selected_gene_list = []
-      for gene in np.take(source.data['symbol'], indices).tolist():      
-        link_html = f"<a href='#'>{gene}</a>"
-        div_enlace = Div(text=link_html)
-        div_enlace.on_event('click', callback_handler)
-        
-        selected_gene_list.append(div_enlace)
-      gene_display.children = selected_gene_list
-
-  summaries_plot.on_event(SelectionGeometry, select_group)
-  set_1_plot.on_event(SelectionGeometry, select_group)
-  set_2_plot.on_event(SelectionGeometry, select_group)
-
-  #  -- Visualization
-  plots = gridplot([[summaries_plot, column([select_1, set_1_plot], sizing_mode='scale_both'), column([select_2, set_2_plot], sizing_mode='scale_width')]], sizing_mode='scale_both')
-  plots.styles = {'padding': '0 25px'}
-
-  doc.add_root(column([row(plots, sizing_mode='scale_both', min_height=700), gpt_group, gene_group], sizing_mode="scale_width"))
-  doc.theme = Theme(filename="theme.yaml")
-
-def searcher(doc):
   # region Plots
   client = chromadb.PersistentClient(path="./db/local_client")
   
   set_1_name = 'KICH_clustering-spectral'
   set_2_name = 'KIRP_clustering-spectral'
   
-  common_gene_list = getCommonGenesList(set_1_name, set_2_name)
+  common_gene_list = get_common_gene_list(set_1_name, set_2_name)
 
   summaries_metadatas = get_sorted_collection_metadata(client, common_gene_list, 'gen_summaries')
   expresions_set_1_data = get_sorted_collection_metadata(client, common_gene_list, set_1_name)
@@ -377,7 +166,7 @@ def searcher(doc):
                   'PRAD', 'READ', 'SARC', 'SKCM', 'STAD', 'TGCT', 'THCA', 'THYM', 'UCEC', 'UCS', 'UVM']
   def change_set_1(attr, old, new):
     set_2_name = select_2.value
-    common_gene_list = getCommonGenesList(new, set_2_name)
+    common_gene_list = get_common_gene_list(new, set_2_name)
     expresions_set_1_data = get_sorted_collection_metadata(client, common_gene_list, new)
     
     source.data['set_1_y'] = [d['x'] for d in expresions_set_1_data]
@@ -391,7 +180,7 @@ def searcher(doc):
 
   def change_set_2(attr, old, new):    
     set_1_name = select_1.value
-    common_gene_list = getCommonGenesList(new, set_1_name)
+    common_gene_list = get_common_gene_list(new, set_1_name)
     expresions_set_2_data = get_sorted_collection_metadata(client, common_gene_list, new)
     
     source.data['set_2_y'] = [d['x'] for d in expresions_set_2_data]
@@ -477,11 +266,6 @@ def searcher(doc):
   doc.theme = Theme(filename="theme.yaml")
   #endregion
   
-@app.route('/searcher', methods=['GET'])
-def searcher_page():
-  script = server_document('http://localhost:5006/searcher')
-  return render_template("searcher.html", script=script, template="Flask")
-
 @app.route('/', methods=['GET'])
 def bkapp_page():
   script = server_document('http://localhost:5006/bkapp')
@@ -490,7 +274,7 @@ def bkapp_page():
 def bk_worker():
     # Can't pass num_procs > 1 in this configuration. If you need to run multiple
     # processes, see e.g. flask_gunicorn_embed.py
-    server = Server({'/bkapp': bkapp, '/searcher': searcher}, io_loop=IOLoop(), allow_websocket_origin=["localhost:8000"])
+    server = Server({'/bkapp': bkapp}, io_loop=IOLoop(), allow_websocket_origin=["localhost:8000"])
     server.start()
     server.io_loop.start()
 
