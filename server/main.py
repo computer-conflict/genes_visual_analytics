@@ -6,11 +6,13 @@ from tornado.ioloop import IOLoop
 
 from bokeh.embed import server_document # type: ignore
 from bokeh.layouts import column, row, gridplot # type: ignore
-from bokeh.models import Button, ColumnDataSource, Div, Paragraph, Select, TextInput, Toggle # type: ignore
+from bokeh.models import Button, ColumnDataSource, Div, Paragraph, Select, TextInput, Toggle, CategoricalColorMapper # type: ignore
 from bokeh.plotting import figure # type: ignore
 from bokeh.server.server import Server # type: ignore
 from bokeh.themes import Theme # type: ignore
 from bokeh.events import SelectionGeometry, MouseMove # type: ignore
+from bokeh.palettes import d3 # type: ignore
+#from gpt4all import GPT4All
 
 # Imports for Chromadb
 from db.setup import chroma_setup
@@ -44,10 +46,18 @@ def getCommonGenesList(df_name_1, df_name_2):
   gene_list = list(result_df["symbol"])
   return gene_list
 
-def getSortedCollectionMetadata(client, gene_list, collection_name):  
+def get_sorted_collection_metadata(client, gene_list, collection_name):  
   collection = client.get_collection(collection_name)
   metadatas = collection.get(ids=gene_list, include=["metadatas"])["metadatas"]
   return sorted(metadatas, key=lambda row: row['symbol'])
+
+def get_color_map(df_name):
+  path = f"./db/datasets/modified_sets/{df_name}.csv"
+  df = pd.read_csv(path)
+  
+  categories = list(map( lambda x: str(x), df['cluster'].unique()))
+  palette = d3['Category10'][len(categories)]
+  return CategoricalColorMapper(factors=categories, palette=palette)
 
 def bkapp(doc):
   client = chromadb.PersistentClient(path="./db/local_client")
@@ -57,9 +67,9 @@ def bkapp(doc):
   
   common_gene_list = getCommonGenesList(set_1_name, set_2_name)
 
-  summaries_metadatas = getSortedCollectionMetadata(client, common_gene_list, 'gen_summaries')
-  expresions_set_1_data = getSortedCollectionMetadata(client, common_gene_list, set_1_name)
-  expresions_set_2_data = getSortedCollectionMetadata(client, common_gene_list, set_2_name)
+  summaries_metadatas = get_sorted_collection_metadata(client, common_gene_list, 'gen_summaries')
+  expresions_set_1_data = get_sorted_collection_metadata(client, common_gene_list, set_1_name)
+  expresions_set_2_data = get_sorted_collection_metadata(client, common_gene_list, set_2_name)
   
   data = {
     'indexes': np.arange(0, len(common_gene_list)),
@@ -83,7 +93,7 @@ def bkapp(doc):
   def change_set_1(attr, old, new):
     set_2_name = select_2.value
     common_gene_list = getCommonGenesList(new, set_2_name)
-    expresions_set_1_data = getSortedCollectionMetadata(client, common_gene_list, new)
+    expresions_set_1_data = get_sorted_collection_metadata(client, common_gene_list, new)
     
     source.data['set_1_y'] = [d['x'] for d in expresions_set_1_data]
     source.data['set_1_y'] = [d['y'] for d in expresions_set_1_data]
@@ -97,7 +107,7 @@ def bkapp(doc):
   def change_set_2(attr, old, new):    
     set_1_name = select_1.value
     common_gene_list = getCommonGenesList(new, set_1_name)
-    expresions_set_2_data = getSortedCollectionMetadata(client, common_gene_list, new)
+    expresions_set_2_data = get_sorted_collection_metadata(client, common_gene_list, new)
     
     source.data['set_2_y'] = [d['x'] for d in expresions_set_2_data]
     source.data['set_2_y'] = [d['y'] for d in expresions_set_2_data]
@@ -264,14 +274,14 @@ def searcher(doc):
   # region Plots
   client = chromadb.PersistentClient(path="./db/local_client")
   
-  set_1_name = 'KICH'
-  set_2_name = 'KIRP'
+  set_1_name = 'KICH_clustering-spectral'
+  set_2_name = 'KIRP_clustering-spectral'
   
   common_gene_list = getCommonGenesList(set_1_name, set_2_name)
 
-  summaries_metadatas = getSortedCollectionMetadata(client, common_gene_list, 'gen_summaries')
-  expresions_set_1_data = getSortedCollectionMetadata(client, common_gene_list, set_1_name)
-  expresions_set_2_data = getSortedCollectionMetadata(client, common_gene_list, set_2_name)
+  summaries_metadatas = get_sorted_collection_metadata(client, common_gene_list, 'gen_summaries')
+  expresions_set_1_data = get_sorted_collection_metadata(client, common_gene_list, set_1_name)
+  expresions_set_2_data = get_sorted_collection_metadata(client, common_gene_list, set_2_name)
   
   data = {
     'indexes': np.arange(0, len(common_gene_list)),
@@ -281,8 +291,10 @@ def searcher(doc):
     'summary_y': [d['y'] for d in summaries_metadatas],
     'set_1_x': [d['x'] for d in expresions_set_1_data],
     'set_1_y': [d['y'] for d in expresions_set_1_data],
+    'set_1_cluster': [str(d['cluter']) for d in expresions_set_1_data],
     'set_2_x': [d['x'] for d in expresions_set_2_data],
-    'set_2_y': [d['y'] for d in expresions_set_2_data]
+    'set_2_y': [d['y'] for d in expresions_set_2_data],
+    'set_2_cluster': [str(d['cluter']) for d in expresions_set_2_data]
   }
   source = ColumnDataSource(data) 
 
@@ -296,6 +308,9 @@ def searcher(doc):
       <p>@{summary}</p>
     </div>
   """
+  color_map = get_color_map(set_1_name)
+
+  
   #  -- Plots figures & callbacks
   summaries_plot = figure(tooltips=TOOLTIPS,
                           match_aspect=True,
@@ -308,13 +323,15 @@ def searcher(doc):
       tools="crosshair,box_select,pan,reset,wheel_zoom",
       title='Representación de las expresiones genéticas', tooltips=TOOLTIPS)
   set_1_plot.scatter(x='set_1_x', y='set_1_y', source=source, marker="circle",
-                          radius=0.02, selection_color="red",  nonselection_fill_alpha=0.01)
+                          radius=0.02, selection_color="red",  nonselection_fill_alpha=0.01,
+                          color={'field': 'set_1_cluster', 'transform': color_map})
   
   set_2_plot = figure(name='expresions_plot', match_aspect=True,
       tools="crosshair,box_select,pan,reset,wheel_zoom",
       title='Representación de las expresiones genéticas', tooltips=TOOLTIPS)
   set_2_plot.scatter(x='set_2_x', y='set_2_y', source=source, marker="circle",
-                       radius=0.02, selection_color="red",  nonselection_fill_alpha=0.01)
+                       radius=0.02, selection_color="red",  nonselection_fill_alpha=0.01,
+                       color={'field': 'set_2_cluster', 'transform': color_map})
   #endregion
   
   #region Plot Actions
@@ -361,7 +378,7 @@ def searcher(doc):
   def change_set_1(attr, old, new):
     set_2_name = select_2.value
     common_gene_list = getCommonGenesList(new, set_2_name)
-    expresions_set_1_data = getSortedCollectionMetadata(client, common_gene_list, new)
+    expresions_set_1_data = get_sorted_collection_metadata(client, common_gene_list, new)
     
     source.data['set_1_y'] = [d['x'] for d in expresions_set_1_data]
     source.data['set_1_y'] = [d['y'] for d in expresions_set_1_data]
@@ -375,7 +392,7 @@ def searcher(doc):
   def change_set_2(attr, old, new):    
     set_1_name = select_1.value
     common_gene_list = getCommonGenesList(new, set_1_name)
-    expresions_set_2_data = getSortedCollectionMetadata(client, common_gene_list, new)
+    expresions_set_2_data = get_sorted_collection_metadata(client, common_gene_list, new)
     
     source.data['set_2_y'] = [d['x'] for d in expresions_set_2_data]
     source.data['set_2_y'] = [d['y'] for d in expresions_set_2_data]
@@ -388,17 +405,14 @@ def searcher(doc):
 
   def summarize_selection():
     indices = source.selected.indices    
-    gene_descriptions = ('.__.').join(map(str, np.take(source.data['summary'], indices).tolist()))
-          
-    response = requests.post('http://127.0.0.1:5000/summarize',
-             data={
-               'gene_descriptions': gene_descriptions
-             })
-    summary_div.text = '<h2>Descripciones resumidas</h2>'
-    if (response.status_code == 200):
-      summary_div.text = '\
-        <h2>Descripciones resumidas</h2> \
-        <p>${response.text}</p>'
+    gene_descriptions = ('. ').join(map(str, np.take(source.data['summary'], indices).tolist()))
+
+    #model = GPT4All("orca-mini-3b-gguf2-q4_0.gguf")
+    #with model.chat_session():
+    #  response = model.generate(prompt=f"Can you say what functions share these gene summaries: {gene_descriptions}", temp=0)
+    #  summary_div.text = '\
+    #    <h2>Descripciones resumidas</h2> \
+    #    <p>${response.content}</p>'
   sum_btn = Button(label="Resumir selección", sizing_mode="stretch_width", margin=[10, 0])
   sum_btn.on_click(summarize_selection)
   sum_btn.styles = {'margin-top': '20px'}
