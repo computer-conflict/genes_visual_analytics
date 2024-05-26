@@ -1,0 +1,4 @@
+{
+  "KICH": "https://tcga-xena-hub.s3.us-east-1.amazonaws.com/download/TCGA.KICH.sampleMap%2FHiSeqV2_PANCAN.gz",
+  "KIRP": "https://tcga-xena-hub.s3.us-east-1.amazonaws.com/download/TCGA.KIRP.sampleMap%2FHiSeqV2_PANCAN.gz"
+}

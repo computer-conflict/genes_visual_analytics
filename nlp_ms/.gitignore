@@ -1,5 +1,0 @@
-# Nuxt dev/build outputs
-# Local env files
-venv
-__pycache__
-.vscode

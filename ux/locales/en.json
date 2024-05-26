@@ -1,9 +1,0 @@
-{
-  "settings": {
-    "menu": {
-      "title": "Configuration",
-      "global": "Global",
-      "database": "Database"
-    }
-  }
-}

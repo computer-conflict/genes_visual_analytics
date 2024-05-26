@@ -12,7 +12,7 @@ def download_and_unzip_dataset(name, url):
     
     # Descomprimir el archivo gz
     with gzip.open(f"{name}.gz", 'rb') as f_in:
-      with open(f"./zipped_impressions_sets/{name}", 'wb') as f_out:
+      with open(f"./zipped_expressions_sets/{name}", 'wb') as f_out:
         shutil.copyfileobj(f_in, f_out)
     
     print(f"Dataset {name} añadido correctamente.")

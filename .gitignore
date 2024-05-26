@@ -1,12 +1,8 @@
-# Node dependencies
-node_modules
+# Server datasets
+db/datasets/raw_datasets/*
+db/datasets/modified_datasets/*
+db/chromadb_client/*
 
-# Logs
-logs
-*.log
-
-# Misc
-.DS_Store
-.fleet
-.idea
-
+# Local env files
+.venv
+.vscode

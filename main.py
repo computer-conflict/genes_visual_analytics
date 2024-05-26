@@ -15,7 +15,7 @@ from bokeh.palettes import d3 # type: ignore
 #from gpt4all import GPT4All
 
 # Imports for Chromadb
-from db.setup import chroma_setup
+from db.setup import env_setup
 __import__('pysqlite3')
 import sys
 sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
@@ -29,13 +29,13 @@ from functools import partial
 app = Flask(__name__)
 
 def get_common_gene_list(df_name_1, df_name_2):
-  desc_dataset_path = './db/datasets/genes_human_58347_used_in_sciPlex2_brief_info_by_mygene_package.csv'
+  desc_dataset_path = './db/datasets/raw_datasets/semantic_dataframe.csv'
   desc_df = pd.read_csv(desc_dataset_path, usecols=["symbol", "summary"]).dropna().drop_duplicates(subset=['symbol'])
 
-  path = f"./db/datasets/impressions_sets/{df_name_1.split('_')[0]}"
+  path = f"./db/datasets/raw_datasets/{df_name_1.split('_')[0]}"
   gen_exp_1_df = pd.read_table(path)
 
-  path = f"./db/datasets/impressions_sets/{df_name_2.split('_')[0]}"
+  path = f"./db/datasets/raw_datasets/{df_name_2.split('_')[0]}"
   gen_exp_2_df = pd.read_table(path)
 
   # Merge dataframes on inner gene name.
@@ -46,31 +46,35 @@ def get_common_gene_list(df_name_1, df_name_2):
   gene_list = list(result_df["symbol"])
   return gene_list
 
-def get_sorted_collection_metadata(client, gene_list, collection_name):  
+def get_metadata_from_chroma(client, gene_list, collection_name):  
   collection = client.get_collection(collection_name)
   metadatas = collection.get(ids=gene_list, include=["metadatas"])["metadatas"]
   return sorted(metadatas, key=lambda row: row['symbol'])
+def get_metadata_from_csv(gene_list, df_name):
+  file_path = f"./db/datasets/modified_datasets/{df_name.split('_')[0]}.csv"
+  df = pd.read_csv(file_path)[['x', 'y', 'cluster', 'sample']]
+  return df[df['sample'].isin(gene_list)].sort_values(by='sample')
 
 def get_color_map(df_name):
-  path = f"./db/datasets/modified_sets/{df_name}.csv"
+  path = f"./db/datasets/modified_datasets/{df_name}.csv"
   df = pd.read_csv(path)
   
   categories = list(map( lambda x: str(x), df['cluster'].unique()))
-  palette = d3['Category10'][len(categories)]
+  palette = d3['Category20'][len(categories)]
   return CategoricalColorMapper(factors=categories, palette=palette)
 
 def bkapp(doc):
   # region Plots
-  client = chromadb.PersistentClient(path="./db/local_client")
+  client = chromadb.PersistentClient(path="./db/chromadb_client")
   
-  set_1_name = 'KICH_clustering-spectral'
-  set_2_name = 'KIRP_clustering-spectral'
+  set_1_name = 'KICH'
+  set_2_name = 'KIRP'
   
   common_gene_list = get_common_gene_list(set_1_name, set_2_name)
 
-  summaries_metadatas = get_sorted_collection_metadata(client, common_gene_list, 'gen_summaries')
-  expresions_set_1_data = get_sorted_collection_metadata(client, common_gene_list, set_1_name)
-  expresions_set_2_data = get_sorted_collection_metadata(client, common_gene_list, set_2_name)
+  summaries_metadatas = get_metadata_from_chroma(client, common_gene_list, 'gene_summaries')
+  expresions_set_1_data = get_metadata_from_csv(common_gene_list, set_1_name)
+  expresions_set_2_data = get_metadata_from_csv(common_gene_list, set_2_name)
   
   data = {
     'indexes': np.arange(0, len(common_gene_list)),
@@ -78,12 +82,12 @@ def bkapp(doc):
     'summary': [d['summary'] for d in summaries_metadatas],
     'summary_x': [d['x'] for d in summaries_metadatas],
     'summary_y': [d['y'] for d in summaries_metadatas],
-    'set_1_x': [d['x'] for d in expresions_set_1_data],
-    'set_1_y': [d['y'] for d in expresions_set_1_data],
-    'set_1_cluster': [str(d['cluter']) for d in expresions_set_1_data],
-    'set_2_x': [d['x'] for d in expresions_set_2_data],
-    'set_2_y': [d['y'] for d in expresions_set_2_data],
-    'set_2_cluster': [str(d['cluter']) for d in expresions_set_2_data]
+    'set_1_x':        list(expresions_set_1_data['x']),
+    'set_1_y':        list(expresions_set_1_data['y']),
+    'set_1_cluster':  list(expresions_set_1_data['cluster'].astype(str)),
+    'set_2_x':        list(expresions_set_2_data['x']),
+    'set_2_y':        list(expresions_set_2_data['y']),
+    'set_2_cluster':  list(expresions_set_2_data['cluster'].astype(str))
   }
   source = ColumnDataSource(data) 
 
@@ -109,14 +113,14 @@ def bkapp(doc):
   summaries_plot.scatter(x='summary_x', y='summary_y', source=source, marker="circle", radius=0.02, selection_color="red", nonselection_fill_alpha=0.01)
   
   set_1_plot = figure(name='expresions_plot', match_aspect=True,
-      tools="crosshair,box_select,pan,reset,wheel_zoom",
+      tools="crosshair,box_select,pan,reset,wheel_zoom,lasso_select",
       title='Representación de las expresiones genéticas', tooltips=TOOLTIPS)
   set_1_plot.scatter(x='set_1_x', y='set_1_y', source=source, marker="circle",
                           radius=0.02, selection_color="red",  nonselection_fill_alpha=0.01,
                           color={'field': 'set_1_cluster', 'transform': color_map})
   
   set_2_plot = figure(name='expresions_plot', match_aspect=True,
-      tools="crosshair,box_select,pan,reset,wheel_zoom",
+      tools="crosshair,box_select,pan,reset,wheel_zoom,lasso_select",
       title='Representación de las expresiones genéticas', tooltips=TOOLTIPS)
   set_2_plot.scatter(x='set_2_x', y='set_2_y', source=source, marker="circle",
                        radius=0.02, selection_color="red",  nonselection_fill_alpha=0.01,
@@ -167,10 +171,10 @@ def bkapp(doc):
   def change_set_1(attr, old, new):
     set_2_name = select_2.value
     common_gene_list = get_common_gene_list(new, set_2_name)
-    expresions_set_1_data = get_sorted_collection_metadata(client, common_gene_list, new)
-    
-    source.data['set_1_y'] = [d['x'] for d in expresions_set_1_data]
-    source.data['set_1_y'] = [d['y'] for d in expresions_set_1_data]
+    expresions_set_1_data = get_metadata_from_csv(common_gene_list, new)
+    source.data['set_1_x'] = expresions_set_1_data['x']
+    source.data['set_1_y'] = expresions_set_1_data['y']
+    source.data['set_1_cluster'] = expresions_set_1_data['cluster'].astype(str).values
   select_1 = Select(title="Conjunto de datos a visualizar:",
                   value=set_1_name,
                   options=sorted(select_options),
@@ -181,10 +185,10 @@ def bkapp(doc):
   def change_set_2(attr, old, new):    
     set_1_name = select_1.value
     common_gene_list = get_common_gene_list(new, set_1_name)
-    expresions_set_2_data = get_sorted_collection_metadata(client, common_gene_list, new)
-    
-    source.data['set_2_y'] = [d['x'] for d in expresions_set_2_data]
-    source.data['set_2_y'] = [d['y'] for d in expresions_set_2_data]
+    expresions_set_2_data = get_metadata_from_csv(common_gene_list, new)
+    source.data['set_2_x'] = expresions_set_2_data['x'].values
+    source.data['set_2_y'] = expresions_set_2_data['y'].values
+    source.data['set_2_cluster'] = expresions_set_2_data['cluster'].astype(str).values
   select_2 = Select(title="Conjunto de datos a visualizar:",
                   value=set_2_name,
                   options=sorted(select_options),
@@ -213,7 +217,7 @@ def bkapp(doc):
   #region SearchBar
   def search_query(attr, old, new):
     client = chromadb.PersistentClient(path="./db/local_client")
-    collection = client.get_collection("gen_summaries")
+    collection = client.get_collection("gene_summaries")
     results = collection.query(
       query_texts=new,
       n_results=200)
@@ -282,7 +286,7 @@ Thread(target=bk_worker).start()
 
 
 if __name__ == '__main__':    
-  chroma_setup()
+  env_setup()
   print('Opening single process Flask app with embedded Bokeh application on http://localhost:8000/')
   print()
   print('Multiple connections may block the Bokeh app in this configuration!')
