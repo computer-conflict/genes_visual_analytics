@@ -13,8 +13,8 @@ from sentence_transformers import SentenceTransformer
 from sklearn.cluster import OPTICS
 
 # Aux imports
-import pandas as pd
 import time, json, os
+import pandas as pd
 import numpy as np
 # ------------------------------------------- #
 #      Initialize enviroment variables        #

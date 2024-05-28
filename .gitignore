@@ -1,5 +1,6 @@
 # Server datasets
 db/datasets/raw_datasets/*
+db/datasets/zipped_expressions_sets/*
 db/datasets/modified_datasets/*
 db/chromadb_client/*
 

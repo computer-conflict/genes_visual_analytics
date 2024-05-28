@@ -8,7 +8,7 @@ In order to prepare the environment and launch the prototype, you need to fulfil
 - Venv
 - Python3.11
 - Pip~=24.0
-- ~7GB Free disk space (for datasets)
+- ~4GB Free disk space (for datasets)
 
 ### Enviroment setup
 
