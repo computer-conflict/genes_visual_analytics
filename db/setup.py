@@ -35,7 +35,7 @@ def get_umap_dimensions(embeddings):
   return [x_list, y_list]
 
 def get_collection_clusters(embeddings):  
-  print(f"  - Clustering time:")
+  print(f" - Clustering time:")
   start_time = time.time()
   clustering.fit(embeddings)
   print(len(np.unique(clustering.labels_)))
@@ -87,21 +87,24 @@ def create_gene_expressions_collection(dataset):
   df.to_csv(f"./db/datasets/modified_datasets/{dataset}.csv", index=False)  
 
 def get_tcga_datasets():
-  with open("./db/tcga_datasets_index.json") as tcgaFile:
+  with open("./db/tcga_datasets_index_test.json") as tcgaFile:
     data = json.load(tcgaFile)
   return data.keys()
 
 def verify_expressions_info():
   expressions_datasets = get_tcga_datasets()
+  datasets_count = len(expressions_datasets)
   
-  for dataset in expressions_datasets:
+  for index,dataset in enumerate(expressions_datasets):
     modified_dataset_path = f"./db/datasets/modified_datasets/{dataset}.csv"
     
     if not os.path.exists(modified_dataset_path):
-      print(f"Generating {dataset} metadata.")
+      print(f"---------------------------------------{index}/{datasets_count}---------------------------------------")
+      print(f"Processing: {dataset}")
       start_time = time.time()
       create_gene_expressions_collection(dataset)
-      print(f"Done generating {dataset} metadata: {time.time() - start_time} s")
+      print(f"Done processing {dataset}: {time.time() - start_time} s")
+      print("")
     
 
 
@@ -114,6 +117,9 @@ def verify_expressions_info():
 #
 # This function can also be launched executing this file. 
 def env_setup():
+  datasets_folder = "./db/datasets/modified_datasets/"
+  os.makedirs(datasets_folder, exist_ok=True)
+    
   verify_semantic_info()
   verify_expressions_info()
 
