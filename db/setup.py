@@ -5,17 +5,18 @@ sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 import chromadb
 
 
-#
+# Umap
 import umap.umap_ as umap
 from sentence_transformers import SentenceTransformer
 
 # Clustering
 from sklearn.cluster import OPTICS
 
-# Aux imports
+# Utils imports
 import pandas as pd
 import time, json, os
 import numpy as np
+
 # ------------------------------------------- #
 #      Initialize enviroment variables        #
 # ------------------------------------------- #

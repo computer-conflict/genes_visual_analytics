@@ -2,7 +2,8 @@
 db/datasets/raw_datasets/*
 db/datasets/modified_datasets/*
 db/chromadb_client/*
-
+db/__pycache__/*
+utils/__pycache__/*
 # Local env files
 .venv
 .vscode
