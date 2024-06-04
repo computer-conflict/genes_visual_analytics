@@ -25,11 +25,11 @@ class ToolsHelper:
         Habilita la herramienta de brushing en una serie de figuras de Bokeh y asocia un Toggle como disparador.
 
         Args:
-
-            summaries_plot (figure): Primera figura a la que se añadirá la herramienta de brushing.
-            set_1_plot (figure): Segunda figura a la que se añadirá la herramienta de brushing.
-            set_2_plot (figure): Tercera figura a la que se añadirá la herramienta de brushing.
-            brushing_tool (Toggle): El Toggle que actúa como disparador para la herramienta de brushing.
+            source :ColumnDataSource: La fuente de datos que se compartirá entre las figuras.
+            summaries_plot :figure: Primera figura a la que se añadirá la herramienta de brushing.
+            set_1_plot :figure: Segunda figura a la que se añadirá la herramienta de brushing.
+            set_2_plot :figure: Tercera figura a la que se añadirá la herramienta de brushing.
+            brushing_tool :Toggle: El Toggle que actúa como disparador para la herramienta de brushing.
 
         Returns:
             List[figure]: Una lista de figuras con la herramienta de brushing habilitada.

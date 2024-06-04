@@ -84,14 +84,14 @@ class PlotsHelper:
             title='Representación de las expresiones genéticas', tooltips=TOOLTIPS)
         set_1_plot.scatter(x='set_1_x', y='set_1_y', source=source, marker="circle",
                                 radius=0.02, selection_color="red",  nonselection_fill_alpha=0.01,
-                                color={'field': 'set_1_cluster', 'transform': color_map})
+                                color='set_1_color')
 
         set_2_plot = figure(name='expresions_plot', match_aspect=True,
             tools="crosshair,box_select,pan,reset,wheel_zoom,lasso_select",
             title='Representación de las expresiones genéticas', tooltips=TOOLTIPS)
         set_2_plot.scatter(x='set_2_x', y='set_2_y', source=source, marker="circle",
                              radius=0.02, selection_color="red",  nonselection_fill_alpha=0.01,
-                             color={'field': 'set_2_cluster', 'transform': color_map})
+                             color='set_2_color')
 
         return [summaries_plot, set_1_plot, set_2_plot]
 

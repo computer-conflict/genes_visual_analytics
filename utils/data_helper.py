@@ -40,7 +40,7 @@ class DataHelper:
     @staticmethod
     def get_metadata_from_csv(gene_list, df_name):
         file_path = f"./db/datasets/modified_datasets/{df_name.split('_')[0]}.csv"
-        df = pd.read_csv(file_path)[['x', 'y', 'cluster', 'sample']]
+        df = pd.read_csv(file_path)[['x', 'y', 'cluster', 'sample', 'color']]
         return df[df['sample'].isin(gene_list)].sort_values(by='sample')
 
 
@@ -63,9 +63,11 @@ class DataHelper:
           'set_1_x':        list(expresions_set_1_data['x']),
           'set_1_y':        list(expresions_set_1_data['y']),
           'set_1_cluster':  list(expresions_set_1_data['cluster'].astype(str)),
+          'set_1_color':    list(expresions_set_1_data['color']),
           'set_2_x':        list(expresions_set_2_data['x']),
           'set_2_y':        list(expresions_set_2_data['y']),
-          'set_2_cluster':  list(expresions_set_2_data['cluster'].astype(str))
+          'set_2_cluster':  list(expresions_set_2_data['cluster'].astype(str)),
+          'set_2_color':    list(expresions_set_2_data['color'])          
         }
 
         return ColumnDataSource(data)
