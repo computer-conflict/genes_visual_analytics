@@ -109,7 +109,7 @@ class WidgetsHelper:
     @staticmethod
     def get_search_bar(source: ColumnDataSource) -> TextInput:
         def search_query(attr, old, new):
-          client = chromadb.PersistentClient(path="./db/local_client")
+          client = chromadb.PersistentClient(path="./db/chromadb_client")
           collection = client.get_collection("gene_summaries")
           results = collection.query(
             query_texts=new,
