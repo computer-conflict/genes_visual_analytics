@@ -12,7 +12,7 @@ from sentence_transformers import SentenceTransformer
 # Clustering
 from sklearn.cluster import DBSCAN
 from sklearn.preprocessing import StandardScaler
-from bokeh.palettes import Spectral11
+from bokeh.palettes import Spectral11,Turbo256
 
 # Utils imports
 import pandas as pd
@@ -79,7 +79,7 @@ def get_collection_clusters(embeddings):
 
 
 def get_collection_colors(labels):
-    colors = Spectral11[0:len(labels)] 
+    colors = Spectral11[0:len(labels)] if len(labels) < 11 else Turbo256[0:len(labels)]
     
     return [colors[label] if label != -1 else 'rgba(128, 128, 128, 0.8)' for label in labels]
 
@@ -132,7 +132,7 @@ def create_gene_expressions_collection(dataset):
     df.to_csv(f"./db/datasets/modified_datasets/{dataset}.csv", index=False)  
 
 def get_tcga_datasets():
-    with open("./db/tcga_datasets_index_test.json") as tcgaFile:
+    with open("./db/tcga_datasets_index.json") as tcgaFile:
       data = json.load(tcgaFile)
     return data.keys()
 
