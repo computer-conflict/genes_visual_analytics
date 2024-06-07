@@ -14,9 +14,18 @@ In order to prepare the environment and launch the prototype, you need to fulfil
 
 First, we need to create the environment and install all Pip requirements. The following commands must be executed in the root of the project.
 
-`python3.11 -m venv .venv`
-`source .venv/bin/activate`
+```
+python3.11 -m venv .venv
+
+source .venv/bin/activate`
+```
+Once the Python environment is created and activated, it is time to install the necessary libraries to run the application.
+
 `pip install -r requirements.txt`
+
+> **_NOTE:_** Macos users should run
+ `pip install -r requirements_macos.txt`
+
 
 Once all the packages are installed, it's time to download the datasets.
 
