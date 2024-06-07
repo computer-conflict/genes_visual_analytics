@@ -2,6 +2,8 @@
 db/datasets/raw_datasets/*
 db/datasets/zipped_expressions_sets/*
 db/datasets/modified_datasets/*
+!db/datasets/raw_datasets/semantic_dataframe.csv
+
 db/chromadb_client/*
 db/__pycache__/*
 utils/__pycache__/*
