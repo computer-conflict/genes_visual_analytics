@@ -19,7 +19,7 @@ class WidgetsHelper:
     @staticmethod
     def summarize_selection(source) -> str:
         indices = source.selected.indices    
-        gene_descriptions = ('. ').join(map(str, np.take(source.data['summary'], indices).tolist()))
+        genes_descriptions = ('. ').join(map(str, np.take(source.data['summary'], indices).tolist()))
 
         def chunk_text(text, max_tokens):
             # Esta función divide el texto en fragmentos de tamaño máximo max_tokens
@@ -44,11 +44,11 @@ class WidgetsHelper:
         model = GPT4All("orca-mini-3b-gguf2-q4_0.gguf")
         max_tokens_per_chunk = 2048  # Ajusta esto según sea necesario
 
-        gene_descriptions_chunks = chunk_text(gene_descriptions, max_tokens_per_chunk)
+        genes_descriptions_chunks = chunk_text(genes_descriptions, max_tokens_per_chunk)
         responses = []
 
         with model.chat_session():
-            for chunk in gene_descriptions_chunks:
+            for chunk in genes_descriptions_chunks:
                 response = model.generate(prompt=f"Can you say what functions share these gene summaries: {chunk}", temp=0)
                 responses.append(response)
 
@@ -70,8 +70,8 @@ class WidgetsHelper:
         
         def change_set_1(attr, old, new):
           set_2_name = select_2.value
-          common_gene_list = DataHelper.get_common_gene_list(new, set_2_name)
-          expresions_set_1_data = DataHelper.get_metadata_from_csv(common_gene_list, new)
+          common_genes_list = DataHelper.get_common_genes_list(new, set_2_name)
+          expresions_set_1_data = DataHelper.get_metadata_from_csv(common_genes_list, new)
           source.data['set_1_x'] = expresions_set_1_data['x']
           source.data['set_1_y'] = expresions_set_1_data['y']
           source.data['set_1_cluster'] = expresions_set_1_data['cluster'].astype(str).values
@@ -84,8 +84,8 @@ class WidgetsHelper:
 
         def change_set_2(attr, old, new):    
           set_1_name = select_1.value
-          common_gene_list = DataHelper.get_common_gene_list(new, set_1_name)
-          expresions_set_2_data = DataHelper.get_metadata_from_csv(common_gene_list, new)
+          common_genes_list = DataHelper.get_common_genes_list(new, set_1_name)
+          expresions_set_2_data = DataHelper.get_metadata_from_csv(common_genes_list, new)
           source.data['set_2_x'] = expresions_set_2_data['x'].values
           source.data['set_2_y'] = expresions_set_2_data['y'].values
           source.data['set_2_cluster'] = expresions_set_2_data['cluster'].astype(str).values
