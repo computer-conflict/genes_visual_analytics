@@ -17,7 +17,7 @@ First, we need to create the environment and install all Pip requirements. The f
 ```
 python3.11 -m venv .venv
 
-source .venv/bin/activate`
+source .venv/bin/activate
 ```
 Once the Python environment is created and activated, it is time to install the necessary libraries to run the application.
 
