@@ -16,7 +16,7 @@ class ToolsHelper:
             distance = ((x - x_ref)**2 + (y - y_ref)**2)**0.5
             if distance < max_distance:
                 index_list.append(i)
-            
+
         return index_list
 
     @staticmethod
@@ -39,7 +39,7 @@ class ToolsHelper:
         todas las figuras. El Toggle actúa como un disparador que controla el estado de la herramienta
         de brushing.
         """
-        
+
         def brushing(e, plot_name):
             '''
             Definicion de la herramienta de brushing.
@@ -58,9 +58,9 @@ class ToolsHelper:
             source.selected.indices = index
             print("")
             print(f"Brushing  time: {end_time - start_time} s")
-            
+
         summaries_plot.on_event(MouseMove, partial(brushing, plot_name='summary'))
         set_1_plot.on_event(MouseMove, partial(brushing, plot_name='set_1'))
         set_2_plot.on_event(MouseMove, partial(brushing, plot_name='set_2'))
-        
+
         return [summaries_plot, set_1_plot, set_2_plot]

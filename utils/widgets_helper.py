@@ -18,7 +18,7 @@ from gpt4all import GPT4All
 class WidgetsHelper:
     @staticmethod
     def summarize_selection(source) -> str:
-        indices = source.selected.indices    
+        indices = source.selected.indices
         genes_descriptions = ('. ').join(map(str, np.take(source.data['summary'], indices).tolist()))
 
         def chunk_text(text, max_tokens):
@@ -60,14 +60,15 @@ class WidgetsHelper:
         #summary_div.text = f'\
         #    <h2>Descripciones resumidas</h2> \
         #    <p>{combined_response}</p>'
-    
+
     @staticmethod
     def get_widgets(source: ColumnDataSource, set_1_name:str, set_2_name:str) -> List:
-        select_options = ['ACC', 'BLCA', 'BRCA', 'CESC', 'CHOL', 'COAD', 'COADREAD',
-                        'DLBC', 'ESCA', 'GBM', 'HNSC', 'KICH', 'KICH_5', 'KIRC', 'KIRP', 'KIRP_5', 'LAML',
-                        'LGG', 'LIHC', 'LUAD', 'LUSC', 'MESO', 'OV1', 'PAAD', 'PCPG',
-                        'PRAD', 'READ', 'SARC', 'SKCM', 'STAD', 'TGCT', 'THCA', 'THYM', 'UCEC', 'UCS', 'UVM']
-        
+        select_options = ["ACC", "BLCA", "BRCA", "CESC", "CHOL", "COAD", "COADREAD", "DLBC",
+                          "ESCA", "GBM", "HNSC", "KICH", "KIRC", "KIRP", "LAML", "LGG", "LIHC",
+                          "LUAD", "LUNG", "LUSC", "MESO", "OV", "PAAD", "PCPG", "PRAD", "READ",
+                          "SARC", "SKCM", "STAD", "TGCT", "THCA", "THYM", "UCEC", "UCS", "UVM"]
+
+
         def change_set_1(attr, old, new):
           set_2_name = select_2.value
           common_genes_list = DataHelper.get_common_genes_list(new, set_2_name)
@@ -82,7 +83,7 @@ class WidgetsHelper:
         select_1.on_change('value', change_set_1)
         select_1.styles = {'padding': '0 20px'}
 
-        def change_set_2(attr, old, new):    
+        def change_set_2(attr, old, new):
           set_1_name = select_1.value
           common_genes_list = DataHelper.get_common_genes_list(new, set_1_name)
           expresions_set_2_data = DataHelper.get_metadata_from_csv(common_genes_list, new)
@@ -98,6 +99,7 @@ class WidgetsHelper:
 
 
         sum_btn = Button(label="Resumir selección", sizing_mode="stretch_width", margin=[10, 0])
+        sum_btn.disabled=True
         #sum_btn.on_click(summarize_selection)
         sum_btn.styles = {'margin-top': '20px'}
 
@@ -105,7 +107,7 @@ class WidgetsHelper:
         brusshing_toggle.styles = {'margin-top': '20px'}
 
         return [sum_btn, brusshing_toggle, select_1, select_2]
-    
+
     @staticmethod
     def get_search_bar(source: ColumnDataSource) -> TextInput:
         def search_query(attr, old, new):
@@ -129,7 +131,7 @@ class WidgetsHelper:
             result_group.children.append(header)
 
             text = Div(text=f"<p>{result['summary']}</p>")
-            text.styles = {'padding': '0 25px'}      
+            text.styles = {'padding': '0 25px'}
             result_group.children.append(text)
 
             results_widgets.append(result_group)
@@ -151,11 +153,11 @@ class WidgetsHelper:
                               sizing_mode="stretch_width", margin=[10, 0])
         search_bar.on_change('value', search_query)
         search_bar.styles = {'padding': '0 25px'}
-      
+
         # Search results display
         h1 = Div(text="<h1></h1>")
         h1.styles = {'padding': '0 25px'}
         result_list = column(sizing_mode="stretch_width")
-      
+
         return [search_bar, h1, result_list]
 

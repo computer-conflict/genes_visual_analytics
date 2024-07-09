@@ -23,7 +23,7 @@
   "SKCM": "https://tcga-xena-hub.s3.us-east-1.amazonaws.com/download/TCGA.SKCM.sampleMap%2FHiSeqV2_PANCAN.gz",
   "MESO": "https://tcga-xena-hub.s3.us-east-1.amazonaws.com/download/TCGA.MESO.sampleMap%2FHiSeqV2_PANCAN.gz",
   "UVM": "https://tcga-xena-hub.s3.us-east-1.amazonaws.com/download/TCGA.UVM.sampleMap%2FHiSeqV2_PANCAN.gz",
-  "OV1":  "https://tcga-xena-hub.s3.us-east-1.amazonaws.com/download/TCGA.OV.sampleMap%2FHiSeqV2_PANCAN.gz",
+  "OV":  "https://tcga-xena-hub.s3.us-east-1.amazonaws.com/download/TCGA.OV.sampleMap%2FHiSeqV2_PANCAN.gz",
   "PAAD": "https://tcga-xena-hub.s3.us-east-1.amazonaws.com/download/TCGA.PAAD.sampleMap%2FHiSeqV2_PANCAN.gz",
   "PCPG": "https://tcga-xena-hub.s3.us-east-1.amazonaws.com/download/TCGA.PCPG.sampleMap%2FHiSeqV2_PANCAN.gz",
   "PRAD": "https://tcga-xena-hub.s3.us-east-1.amazonaws.com/download/TCGA.PRAD.sampleMap%2FHiSeqV2_PANCAN.gz",
