@@ -116,7 +116,7 @@ def create_gene_expressions_collection(dataset):
     df.to_csv(f"./db/datasets/modified_datasets/{dataset}.csv", index=False)
 
 def get_tcga_datasets():
-    with open("./db/tcga_datasets_index_test.json") as tcgaFile:
+    with open("./db/tcga_datasets_index.json") as tcgaFile:
       data = json.load(tcgaFile)
     return data.keys()
 

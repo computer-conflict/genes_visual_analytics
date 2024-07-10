@@ -38,7 +38,7 @@ def download_and_unzip_dataset(dataset_name, url):
 
 
 def get_tcga_datasets():
-  with open("./db/tcga_datasets_index_test.json") as tcgaFile:
+  with open("./db/tcga_datasets_index.json") as tcgaFile:
     data = json.load(tcgaFile)
   return data
 
