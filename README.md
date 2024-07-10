@@ -1,5 +1,5 @@
 # Visual Analytics for Gene Information
-This project is a Proof of Concept (POC) aimed at demonstrating that clusters in the semantic space are related to clusters in the genes expressions space. In order to achieve that... #TODO
+This project is a Proof of Concept (POC) aimed at demonstrating that clusters in the semantic space are related to clusters in the genes expressions space.
 
 ## Configuration
 ### Basic requierements
