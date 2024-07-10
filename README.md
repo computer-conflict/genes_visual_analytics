@@ -31,7 +31,7 @@ Once all the packages are installed, it's time to download the datasets.
 
 `python ./db/datasets/datasets_downloader.py`
 
-"This command will download all the gene expression datasets from [xenabrowser](https://xenabrowser.net), unzip them, and save them into ./db/datasets/raw_datasets.
+This command will download all the gene expression datasets from [xenabrowser](https://xenabrowser.net), unzip them, and save them into ./db/datasets/raw_datasets.
 
 ## Deployment
 
