@@ -127,7 +127,7 @@ def load_genes_summaries_dataset():
     print(f"Tiempo total: {total_time:.2f} segundos")
 
 if __name__ == "__main__":
-    #load_genes_expressions_datasets()
+    load_genes_expressions_datasets()
 
     file_path = 'db/datasets/raw_datasets/semantic_dataframe.csv'
     if not os.path.exists(file_path):
